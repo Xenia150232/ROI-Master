@@ -958,8 +958,14 @@ function triggerCompareAI(){
   const names=selectedNames.slice(0,10);
   if(!names.length)return;
   const seed='$'+(Math.round(1000*(window.seedMultiplier||1))).toLocaleString();
-  const prompt=`Compare these ${names.length} assets against each other across all available time horizons (1Y, 5Y, 10Y, 15Y, 20Y) based on a ${seed} seed investment: ${names.join(', ')}. For each time horizon show which asset performed best and worst, then give an overall ranking with a brief reason for each position.`;
-  window.openChatWithPrompt(prompt);
+
+  // Clean label shown in the chat bubble
+  const displayText=`Compare ${names.length} selected assets (${seed} seed)`;
+
+  // Detailed prompt sent to the AI
+  const aiPrompt=`Compare these ${names.length} assets against each other across all available time horizons (1Y, 5Y, 10Y, 15Y, 20Y) based on a ${seed} seed investment: ${names.join(', ')}. For each time horizon state which asset performed best and worst with the values. Then give an overall ranking (#1 to #${names.length}) with a brief reason for each position. Use bold for asset names and values.`;
+
+  window.openChatWithPrompt(displayText, aiPrompt);
 }
 
 // ===== MINI CHARTS =====

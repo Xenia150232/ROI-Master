@@ -1,9 +1,0 @@
-1. I do not want you to create any bolt Databases , so never do that for this project
-2. Always remember I am putting this project on GitHub for people to fork and use, so keep updating the Readme file without giving away any private secrets 
-3. I have got this site hosted publically on  https://roimaster.netlify.app/ 
-
-For all designs I ask you to make, have them be beautiful, not cookie cutter. Make webpages that are fully featured and worthy for production.
-
-By default, this template supports JSX syntax with Tailwind CSS classes, React hooks, and Lucide React for icons. Do not install other packages for UI themes, icons, etc unless absolutely necessary or I request them.
-
-Use icons from lucide-react for logos.

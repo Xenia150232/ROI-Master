@@ -167,6 +167,16 @@
     aiTooltip = el('div', 'chat-badge-tooltip', badgeWrap);
     aiTooltip.innerHTML = 'Checking AI availability…';
 
+    const clearBtn = el('button', 'chat-header-clear', header);
+    clearBtn.setAttribute('aria-label', 'Clear conversation');
+    clearBtn.title = 'Clear conversation';
+    clearBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>`;
+    clearBtn.addEventListener('click', () => {
+      clearHistory();
+      body.innerHTML = '';
+      showWelcome();
+    });
+
     const closeBtn = el('button', 'chat-header-close', header);
     closeBtn.setAttribute('aria-label', 'Close chat');
     closeBtn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
@@ -248,21 +258,8 @@
         }
       }
     });
-    // Add clear history button after restoration
-    addClearHistoryBtn();
     // Scroll to bottom
     body.scrollTop = body.scrollHeight;
-  }
-
-  function addClearHistoryBtn() {
-    if (body.querySelector('.chat-clear-history')) return;
-    const btn = el('button', 'chat-clear-history', body);
-    btn.textContent = 'Clear conversation';
-    btn.addEventListener('click', () => {
-      clearHistory();
-      body.innerHTML = '';
-      showWelcome();
-    });
   }
 
   function closeChat() {
@@ -305,7 +302,7 @@
   }
 
   // ── Pill handler ─────────────────────────────────────────────
-  function handlePill(q) {
+  async function handlePill(q) {
     resetInactivity();
     if (q.key === 'other') {
       textarea.focus();
@@ -314,15 +311,24 @@
     lastUserQuestion = q.label;
     addUserMsg(q.label);
     pushHistory('user', q.label);
-    showTyping(true);
-    setTimeout(() => {
-      showTyping(false);
-      const answer = answerQuestion(q.key);
-      addBotMsg(answer);
-      pushHistory('assistant', answer);
-      showFollowUpPills(generateFollowUps(q.label, answer));
-      resetInactivity();
-    }, 600 + Math.random() * 400);
+    showTyping(true, aiAvailable);
+    setSendDisabled(true);
+
+    let answer = null;
+    if (aiAvailable) {
+      answer = await fetchAIAnswer(q.label, chatHistory.slice(0, -1));
+    }
+    if (!answer) {
+      answer = answerQuestion(q.key);
+    }
+
+    showTyping(false);
+    setSendDisabled(false);
+    addBotMsg(answer);
+    const replyStr = (answer && typeof answer === 'object') ? answer.reply : answer;
+    pushHistory('assistant', replyStr);
+    showFollowUpPills(generateFollowUps(q.label, replyStr));
+    resetInactivity();
   }
 
   // ── Client-side input guardrail ───────────────────────────────
@@ -1403,28 +1409,34 @@
 
   // ── Public API ───────────────────────────────────────────────
   // Exposed so other scripts (e.g. app.js) can open the chat and fire a prompt programmatically.
-  window.openChatWithPrompt = function(promptText) {
+  window.openChatWithPrompt = async function(displayText, promptText) {
     if (!win) return; // not yet initialised
     if (!isOpen) openChat();
-    // Small delay so the chat window is visible before the message appears
-    setTimeout(async () => {
-      if (isBlockedInput(promptText)) return;
-      lastUserQuestion = promptText;
-      addUserMsg(promptText);
-      pushHistory('user', promptText);
-      showTyping(true, aiAvailable);
-      setTimeout(async () => {
-        showTyping(false);
-        let answer = null;
-        if (aiAvailable) answer = await fetchAIAnswer(promptText, chatHistory.slice(0, -1));
-        if (!answer) answer = answerFreeText(promptText);
-        addBotMsg(answer);
-        const replyStr = (answer && typeof answer === 'object') ? answer.reply : answer;
-        pushHistory('assistant', replyStr);
-        showFollowUpPills(generateFollowUps(promptText, replyStr));
-        resetInactivity();
-      }, 600 + Math.random() * 300);
-    }, 200);
+    // Use promptText as the AI query if provided; displayText is shown in the bubble
+    const aiQuery = promptText || displayText;
+    const userDisplay = displayText || promptText;
+
+    // Small delay so the chat window renders before message appears
+    await new Promise(r => setTimeout(r, 150));
+
+    if (isBlockedInput(aiQuery)) return;
+    lastUserQuestion = aiQuery;
+    addUserMsg(userDisplay);
+    pushHistory('user', aiQuery);
+    showTyping(true, aiAvailable);
+    setSendDisabled(true);
+
+    let answer = null;
+    if (aiAvailable) answer = await fetchAIAnswer(aiQuery, chatHistory.slice(0, -1));
+    if (!answer) answer = answerFreeText(aiQuery);
+
+    showTyping(false);
+    setSendDisabled(false);
+    addBotMsg(answer);
+    const replyStr = (answer && typeof answer === 'object') ? answer.reply : answer;
+    pushHistory('assistant', replyStr);
+    showFollowUpPills(generateFollowUps(aiQuery, replyStr));
+    resetInactivity();
   };
 
   // ── Bootstrap ────────────────────────────────────────────────

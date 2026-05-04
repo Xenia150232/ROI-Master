@@ -1639,8 +1639,15 @@ function hideHeatTip(){
 function toggleDataMenu(){
   const btn=document.getElementById('dataMenuBtn');
   const dd=document.getElementById('dataMenuDropdown');
-  const open=dd.classList.toggle('open');
-  btn.classList.toggle('open',open);
+  const opening=!dd.classList.contains('open');
+  if(opening){
+    const r=btn.getBoundingClientRect();
+    dd.style.top=(r.bottom+4)+'px';
+    dd.style.right=(window.innerWidth-r.right)+'px';
+    dd.style.left='auto';
+  }
+  dd.classList.toggle('open',opening);
+  btn.classList.toggle('open',opening);
 }
 function closeDataMenu(){
   document.getElementById('dataMenuBtn')?.classList.remove('open');

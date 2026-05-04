@@ -115,7 +115,57 @@ If you don't want to use Netlify, the `netlify/functions/chat-ai.js` serverless 
 
 The only requirement is that the endpoint accepts `POST { message, assetContext, conversationHistory }` and returns `{ reply, ai_available, remaining_calls }`.
 
-> **Note:** IP rate limiting uses `@netlify/blobs`, which is a Netlify-specific feature. If you port to another platform, replace the blob store calls with your own key-value store (Redis, Upstash, DynamoDB, etc.) or remove the rate limiting if not needed.
+> **Note:** IP rate limiting uses `@netlify/blobs`, which is a Netlify-specific feature. If you port to another platform, replace the blob store calls with your own key-value store (Redis, Upstash, DynamoDB, etc.) or remove the rate limiting if not needed. See [IP Rate Limiting](#ip-rate-limiting) below for full details.
+
+### IP Rate Limiting
+
+The serverless function enforces a per-IP daily call limit to prevent a single user from exhausting your LLM API credits.
+
+**How it works:**
+
+- Each incoming request carries the caller's IP address (read from `x-nf-client-connection-ip`, then `x-forwarded-for`).
+- The IP is used as a key in a Netlify Blobs store called `chat-rate-limits`. Each key stores `{ date, count }` — today's UTC date and how many calls that IP has made.
+- On every AI request, the count is incremented. If it reaches `DAILY_LIMIT` (default: 30), the request is blocked and the frontend shows a limit-reached message.
+- The limit resets automatically at UTC midnight — no cron job needed, because the stored date is compared to today's date on every call.
+- The call counter in the chat UI updates in real time so users can see how many messages they have left.
+
+**Changing the daily limit:**
+
+Open `netlify/functions/chat-ai.js` and update the constant near the top:
+
+```js
+const DAILY_LIMIT = 30; // change to any number you want
+```
+
+**Replacing Netlify Blobs with another store:**
+
+Netlify Blobs is only available on Netlify. If you host elsewhere, replace the two rate-limiting helper blocks in `chat-ai.js` with any key-value store. The interface is simple — you need just two operations:
+
+```js
+// READ: get the current record for an IP
+const record = await store.get(ip, { type: 'json' });
+// record is either null or { date: "YYYY-MM-DD", count: N }
+
+// WRITE: save the updated count
+await store.setJSON(ip, { date: today, count: newCount });
+```
+
+Drop-in replacement options:
+
+| Store | Notes |
+|-------|-------|
+| **Upstash Redis** | Free tier, HTTP API, works in any serverless runtime |
+| **Cloudflare KV** | Ideal if porting to Cloudflare Workers |
+| **DynamoDB** | AWS-native, pairs naturally with Lambda |
+| **Vercel KV** | One-line setup if using Vercel |
+| **Supabase / Postgres** | Use a simple `ip_rate_limits` table with an upsert |
+| **In-memory (Map)** | Only suitable for single-instance, non-production use |
+
+**Removing rate limiting entirely:**
+
+If you don't want any rate limiting, delete the rate-limit block in `chat-ai.js` (the section between `// ── IP Rate Limiting` and the `if (!rateLimitOk)` block), set `remainingCalls = DAILY_LIMIT`, and remove the `connectLambda(event)` call. You can also remove `@netlify/blobs` from `package.json` and the `external_node_modules` line from `netlify.toml`.
+
+---
 
 ### Swapping the LLM provider
 

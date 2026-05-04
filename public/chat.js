@@ -42,15 +42,56 @@
   }
 
   // ── Quick question definitions ──────────────────────────────
-  const QUICK_QUESTIONS = [
-    { label: 'Best 10-year assets',  key: 'best10yr' },
-    { label: 'Highest ROI overall',  key: 'bestROI' },
-    { label: 'Top asset class',      key: 'topClass' },
-    { label: 'Worst performers',     key: 'worst' },
-    { label: 'Average returns',      key: 'avgReturns' },
-    { label: 'Most consistent',      key: 'consistent' },
-    { label: 'Other',                key: 'other' },
+  const ALL_QUICK_QUESTIONS = [
+    { label: 'Best 10-year assets',      key: 'best10yr' },
+    { label: 'Highest ROI overall',      key: 'bestROI' },
+    { label: 'Top asset class',          key: 'topClass' },
+    { label: 'Worst performers',         key: 'worst' },
+    { label: 'Average returns',          key: 'avgReturns' },
+    { label: 'Most consistent',          key: 'consistent' },
+    { label: 'Best 5-year assets',       key: 'best5yr' },
+    { label: 'Best 20-year assets',      key: 'best20yr' },
+    { label: 'Best 1-year assets',       key: 'best1yr' },
+    { label: 'Top stocks',               key: 'topStocks' },
+    { label: 'Top ETFs',                 key: 'topETFs' },
+    { label: 'Top commodities',          key: 'topCommodities' },
+    { label: 'Real estate returns',      key: 'realEstate' },
+    { label: 'Hidden gems',              key: 'hiddenGems' },
+    { label: 'Biggest surprises',        key: 'surprises' },
+    { label: '10x club',                 key: '10xClub' },
+    { label: '50x club',                 key: '50xClub' },
+    { label: 'Best risk-adjusted',       key: 'riskAdjusted' },
+    { label: 'Tech sector leaders',      key: 'techLeaders' },
+    { label: 'AI & semiconductor picks', key: 'aiSemis' },
+    { label: 'Dividend vs growth',       key: 'divVsGrowth' },
+    { label: 'Crypto performance',       key: 'crypto' },
+    { label: 'Gold vs stocks',           key: 'goldVsStocks' },
+    { label: 'Bonds performance',        key: 'bonds' },
+    { label: 'Energy sector',            key: 'energy' },
+    { label: 'Healthcare returns',       key: 'healthcare' },
+    { label: 'Consumer brands',          key: 'consumer' },
+    { label: 'Emerging markets',         key: 'emerging' },
+    { label: 'Small cap vs large cap',   key: 'capSize' },
+    { label: 'Index funds compared',     key: 'indexFunds' },
+    { label: 'Which class compounds best', key: 'bestCompounder' },
+    { label: 'Biggest declines',         key: 'bigDeclines' },
+    { label: 'Most volatile assets',     key: 'volatile' },
+    { label: 'Steady growth picks',      key: 'steadyGrowth' },
+    { label: 'Best since 2010',          key: 'since2010' },
   ];
+
+  function pickQuickQuestions() {
+    const pool = ALL_QUICK_QUESTIONS.slice();
+    const picked = [];
+    while (picked.length < 6 && pool.length) {
+      const i = Math.floor(Math.random() * pool.length);
+      picked.push(pool.splice(i, 1)[0]);
+    }
+    picked.push({ label: 'Other', key: 'other' });
+    return picked;
+  }
+
+  const QUICK_QUESTIONS = pickQuickQuestions();
 
   // ── TTS (Web Speech API) ─────────────────────────────────────
   let ttsEnabled = false;
@@ -751,7 +792,14 @@
       case 'worst':       return worstPerformers(assets);
       case 'avgReturns':  return avgReturns(assets);
       case 'consistent':  return mostConsistent(assets);
-      default: return 'I\'m not sure how to answer that yet.';
+      case 'best1yr':     return best10yr(assets, 1);
+      case 'best5yr':     return best10yr(assets, 5);
+      case 'best20yr':    return best10yr(assets, 20);
+      default: {
+        // For all other keys, derive the answer from the label text
+        const label = (ALL_QUICK_QUESTIONS.find(q => q.key === key) || {}).label || key;
+        return answerFreeText(label);
+      }
     }
   }
 

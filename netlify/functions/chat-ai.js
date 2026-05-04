@@ -242,8 +242,10 @@ RESPONSE FORMAT — strict, no exceptions:
 - For "how well does X cover" or "how many categories" type questions: answer in 3–4 tight bullets with actual numbers. No editorialising.
 - For visualisation/heatmap/chart questions: 3–5 bullets stating the key data facts. Never explain what a visualisation "is" — just give the findings.
 - For ranking questions: numbered list of assets with values, then 1–2 insight bullets max.
-CHART DATA RULE — always the last thing in your reply, no exceptions:
-After your bullets, output a blank line then exactly this block (CHART DATA must be the final content):
+CHART DATA RULE — MANDATORY in EVERY single reply, no exceptions whatsoever:
+You MUST end EVERY response with a blank line followed by a CHART DATA block.
+This is non-negotiable. Even for conceptual questions, even for yes/no answers, even when you think there is nothing to chart — you MUST produce one.
+If the question doesn't naturally yield a ranking, infer the most relevant comparison from the dataset context (e.g. top assets by 10yr return, asset class averages, or the top performers in the relevant category).
 
 CHART DATA:
 1. Name — $X,XXX
@@ -252,13 +254,14 @@ CHART DATA:
 
 Rules for CHART DATA:
 - 3 to 8 items only
-- Exact dollar values only — no ~, no ranges, no "approx", no k/M suffixes in the list
-- Name column: asset name or category name, no extra text, no bold markers
+- Dollar values must be exact integers — no ~, no ranges, no "approx", no k/M suffixes
+- Name column: asset name, category name, or time horizon label — no extra text, no bold markers
 - For rankings → the ranked assets + their return values
 - For category comparisons → each category + its average return value
 - For heatmap/multi-horizon → top 5 assets overall by the primary horizon discussed
 - For single-asset → the asset's returns at each time horizon as separate rows (label = "1yr", "5yr" etc.)
-- ALWAYS include this block if your answer mentions any dollar values. Never omit it.`;
+- For conceptual/general questions → pick the top 5–8 assets from the dataset by 10yr return as a default chart
+- NEVER end a reply without this block. A reply missing CHART DATA is an error.`;
 
   if (!assetContext) return base;
 

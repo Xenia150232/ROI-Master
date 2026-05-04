@@ -95,9 +95,8 @@ exports.handler = async function (event) {
       body: JSON.stringify({
         model: MODEL,
         max_tokens: MAX_TOKENS,
-        temperature: 0.6,
-        // DeepSeek V4 reasoning: "none" | "high" | "max"
-        // reasoning_content is returned in choices[0].message.reasoning_content
+        // DeepSeek V4 thinking mode requires BOTH fields (temperature/top_p must be omitted)
+        thinking: { type: 'enabled' },
         reasoning_effort: REASONING_EFFORT,
         messages: [
           { role: 'system', content: systemPrompt },

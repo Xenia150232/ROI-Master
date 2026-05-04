@@ -1769,10 +1769,18 @@ function resetToDefault(){
 
 function loadCustomCSV(input){
   const file=input.files[0]; if(!file)return;
+  if(!file.name.toLowerCase().endsWith('.csv')||file.type&&!['text/csv','text/plain','application/csv','application/vnd.ms-excel'].includes(file.type)){
+    alert('Only .csv files are accepted.'); input.value=''; return;
+  }
+  if(file.size>5*1024*1024){alert('File exceeds the 5 MB limit.'); input.value=''; return;}
   const reader=new FileReader();
   reader.onload=e=>{
     try{
-      const lines=e.target.result.split('\n').filter(l=>l.trim());
+      const raw=e.target.result;
+      if(!/^[\x09\x0A\x0D\x20-\x7E\u00A0-\uFFFF]*$/.test(raw.slice(0,2048))){
+        alert('File does not appear to be a valid CSV.'); input.value=''; return;
+      }
+      const lines=raw.split('\n').filter(l=>l.trim());
       const parsed=[];
       const secMap={'STOCKS':'Stocks','ETF':'ETFs & Funds','FUND':'ETFs & Funds','COMMODIT':'Commodities','REAL ESTATE':'Real Estate'};
       let cur='Stocks';

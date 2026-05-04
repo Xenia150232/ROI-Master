@@ -326,14 +326,16 @@
         const msg = el('div', 'chat-msg user', body);
         msg.textContent = entry.content;
       } else {
+        const rawContent = entry.content || '';
+        const { clean: displayContent } = splitChartSection(rawContent);
         const msg = el('div', 'chat-msg bot', body);
-        msg.innerHTML = formatBotText(entry.content);
-        const chartData = extractChartData(entry.content);
+        msg.innerHTML = formatBotText(displayContent);
+        const chartData = extractChartData(rawContent);
         if (chartData) {
-          const titleMatch = entry.content.match(/top \d+|best \d+|worst \d+|ranked|comparison|compare/i);
+          const titleMatch = rawContent.match(/top \d+|best \d+|worst \d+|ranked|comparison|compare|heatmap|categor|class|analys/i);
           const chartTitle = titleMatch ? titleMatch[0].replace(/\b\w/g, c => c.toUpperCase()) : 'Return Comparison';
           const chartWrap = el('div', 'chat-chart-wrap', msg);
-          renderChatChart(chartWrap, chartData, chartTitle, getSeedNote(entry.content));
+          renderChatChart(chartWrap, chartData, chartTitle, getSeedNote(rawContent));
         }
       }
     });
@@ -1140,100 +1142,104 @@
   }
 
   // ── In-chat chart rendering ──────────────────────────────────
+
+  // Strip the CHART DATA: section from text before display, return cleaned text + extracted section
+  function splitChartSection(text) {
+    const marker = /\n?CHART DATA:\s*\n/i;
+    const idx = text.search(marker);
+    if (idx === -1) return { clean: text, chartSection: null };
+    const clean = text.slice(0, idx).trim();
+    const chartSection = text.slice(idx).replace(/^CHART DATA:\s*\n?/i, '').trim();
+    return { clean, chartSection };
+  }
+
   function extractChartData(text) {
-    const items = [];
-    const lines = text.split('\n');
-
-    // Words that indicate a line is prose, not a data row
-    const PROSE_STOP = /^(the|a|an|across|at|by|and|or|in|on|for|of|yr|year|return|invest|over|most|top|best|worst|all|every|with|this|that|these|those|from|its|so|is|are|was|were|will|has|have|had|be|been|being|they|their|there|then|when|where|which|what|how|why|who|than|more|less|both|each|other|total|gain|since|while|also|even|only|just|not|no|any|our|we|you|your|him|her|it|up|down|out|into|about|like|such|per|as|if|asia|europe|out)$/i;
-
-    // Helper: extract the largest dollar value anywhere in a line
+    // Helper: extract the largest dollar value anywhere in a string
     function extractValue(str) {
-      // Match ~$350,000 or $350,000 or $350k or $3.5M
-      const matches = [...str.matchAll(/~?\$\s*([\d,]+(?:\.\d+)?)\s*([kKmM]?)/g)];
+      const matches = [...str.matchAll(/~?\$\s*([\d,]+(?:\.\d+)?)\s*([kKmMbB]?)/g)];
       let best = 0;
       for (const m of matches) {
         let v = parseFloat(m[1].replace(/,/g, ''));
         const suffix = (m[2] || '').toLowerCase();
         if (suffix === 'k') v *= 1000;
         if (suffix === 'm') v *= 1000000;
+        if (suffix === 'b') v *= 1000000000;
         if (v > best) best = v;
       }
       return best > 0 ? Math.round(best) : 0;
     }
 
-    // Helper: extract name from a line prefix (strips markdown bold, tickers)
     function extractName(raw) {
-      // Remove leading list markers: "1. " or "- " or "• "
-      let s = raw.replace(/^(\d+\.|[-•])\s+/, '').trim();
-      // Strip bold markers
+      let s = raw.replace(/^(\d+[\.\)]|[-•])\s+/, '').trim();
       s = s.replace(/\*\*/g, '').replace(/\*/g, '');
-      // Take everything up to the first em-dash, colon, or " —"
       s = s.replace(/\s*[—–]\s.*$/, '').replace(/\s*:.*$/, '');
-      // Strip trailing ticker "(TICK)" or "(BTC)" — keep the name
       s = s.replace(/\s*\([A-Z0-9.]{1,8}\)\s*$/, '').trim();
       return s;
     }
 
+    // ── Priority 1: explicit CHART DATA: section from AI ────────────────────
+    const { chartSection } = splitChartSection(text);
+    if (chartSection) {
+      const items = [];
+      for (const raw of chartSection.split('\n')) {
+        const line = raw.trim();
+        if (!line) continue;
+        if (!/^\d+[\.\)]/.test(line) && !/^[-•]/.test(line)) continue;
+        const val = extractValue(line);
+        if (val < 100) continue;
+        const name = extractName(line);
+        if (!name || name.length < 3) continue;
+        if (!items.find(x => x.name === name) && items.length < 10) {
+          items.push({ name, val });
+        }
+      }
+      if (items.length >= 2) return { type: 'ranked', items };
+    }
+
+    // ── Priority 2: scan full text for numbered/bulleted lines with $ values ─
+    const items = [];
+    const lines = text.split('\n');
+    const PROSE_STOP = /^(the|a|an|across|at|by|and|or|in|on|for|of|yr|year|return|invest|over|most|top|best|worst|all|every|with|this|that|these|those|from|its|so|is|are|was|were|will|has|have|had|be|been|being|they|their|there|then|when|where|which|what|how|why|who|than|more|less|both|each|other|total|gain|since|while|also|even|only|just|not|no|any|our|we|you|your|him|her|it|up|down|out|into|about|like|such|per|as|if|asia|europe|out)$/i;
+
     for (const raw of lines) {
       const line = raw.trim();
       if (!line) continue;
-
-      // Must start with a numbered item or bullet
-      const isNumbered = /^\d+[\.\)]\s+/.test(line);
-      const isBullet   = /^[-•]\s+/.test(line);
-      if (!isNumbered && !isBullet) continue;
-
-      // Must contain a dollar amount somewhere on the line
+      if (!/^\d+[\.\)]\s+/.test(line) && !/^[-•]\s+/.test(line)) continue;
       const val = extractValue(line);
       if (val < 100) continue;
-
       const name = extractName(line);
       if (!name || name.length < 3) continue;
       if (PROSE_STOP.test(name)) continue;
-
-      // Avoid duplicates
       if (!items.find(x => x.name === name) && items.length < 10) {
         items.push({ name, val });
       }
     }
 
-    // ── Comparison table fallback ─────────────────────────────────────────────
-    // Catches lines like "**1yr:** Asia $1,320 vs Europe $1,100"
-    // Returns a grouped structure so the renderer can draw paired bars.
-    if (items.length < 2) {
-      const rows = [];
-      let labelA = '', labelB = '';
+    if (items.length >= 2) return { type: 'ranked', items };
 
-      for (const raw of lines) {
-        const line = raw.trim();
-        // Must contain "vs" and two dollar amounts
-        if (!/\bvs\.?\b/i.test(line)) continue;
-        const m = line.match(/\*{0,2}([^*—\n]{1,20})\*{0,2}\s*[—–:]\s*(.+?)\bvs\.?\s*(.+)/i);
-        if (!m) continue;
-
-        const rowLabel = m[1].replace(/\*\*/g, '').replace(/:$/, '').trim();
-        const sideA = extractValue(m[2]);
-        const sideB = extractValue(m[3]);
-        if (sideA < 100 || sideB < 100) continue;
-
-        // Detect group names from first qualifying row
-        if (!labelA) {
-          const mA = m[2].match(/([A-Z][a-zA-Z\s]{1,15}?)(?:\s*(?:avg|average))?\s*[:$]/);
-          const mB = m[3].match(/([A-Z][a-zA-Z\s]{1,15}?)(?:\s*(?:avg|average))?\s*[:$]/);
-          labelA = mA ? mA[1].trim() : 'Group A';
-          labelB = mB ? mB[1].trim() : 'Group B';
-        }
-
-        rows.push({ label: rowLabel, valA: sideA, valB: sideB });
+    // ── Priority 3: comparison table (lines with "vs") ────────────────────────
+    const rows = [];
+    let labelA = '', labelB = '';
+    for (const raw of lines) {
+      const line = raw.trim();
+      if (!/\bvs\.?\b/i.test(line)) continue;
+      const m = line.match(/\*{0,2}([^*—\n]{1,20})\*{0,2}\s*[—–:]\s*(.+?)\bvs\.?\s*(.+)/i);
+      if (!m) continue;
+      const rowLabel = m[1].replace(/\*\*/g, '').replace(/:$/, '').trim();
+      const sideA = extractValue(m[2]);
+      const sideB = extractValue(m[3]);
+      if (sideA < 100 || sideB < 100) continue;
+      if (!labelA) {
+        const mA = m[2].match(/([A-Z][a-zA-Z\s]{1,15}?)(?:\s*(?:avg|average))?\s*[:$]/);
+        const mB = m[3].match(/([A-Z][a-zA-Z\s]{1,15}?)(?:\s*(?:avg|average))?\s*[:$]/);
+        labelA = mA ? mA[1].trim() : 'Group A';
+        labelB = mB ? mB[1].trim() : 'Group B';
       }
-
-      if (rows.length >= 2) {
-        return { type: 'grouped', labelA, labelB, rows };
-      }
+      rows.push({ label: rowLabel, valA: sideA, valB: sideB });
     }
+    if (rows.length >= 2) return { type: 'grouped', labelA, labelB, rows };
 
-    return items.length >= 2 ? { type: 'ranked', items } : null;
+    return null;
   }
 
   // Two fixed colours for grouped/comparison charts
@@ -1484,8 +1490,11 @@
 
   function addBotMsg(input) {
     // Accept either a plain string or {reply, reasoning} object from fetchAIAnswer
-    const text     = (input && typeof input === 'object') ? (input.reply || '') : (input || '');
+    const rawText   = (input && typeof input === 'object') ? (input.reply || '') : (input || '');
     const reasoning = (input && typeof input === 'object' && input.reasoning) ? input.reasoning : '';
+
+    // Split off the CHART DATA: section so it doesn't appear in the displayed message
+    const { clean: text, chartSection } = splitChartSection(rawText);
 
     const msg = el('div', 'chat-msg bot', body);
 
@@ -1510,11 +1519,10 @@
     const textEl = el('div', 'chat-msg-text', msg);
     textEl.innerHTML = formatBotText(text);
 
-    // Attempt to draw an inline chart
-    const chartData = extractChartData(text);
+    // Attempt to draw an inline chart — use rawText so CHART DATA: section is available
+    const chartData = extractChartData(rawText);
     if (chartData) {
-      // Infer a chart title from the question context
-      const titleMatch = text.match(/top \d+|best \d+|worst \d+|ranked|comparison|compare/i);
+      const titleMatch = (lastUserQuestion + ' ' + text).match(/top \d+|best \d+|worst \d+|ranked|comparison|compare|heatmap|categor|class|analys/i);
       const chartTitle = titleMatch ? titleMatch[0].replace(/\b\w/g, c => c.toUpperCase()) : 'Return Comparison';
       const chartWrap = el('div', 'chat-chart-wrap', msg);
       renderChatChart(chartWrap, chartData, chartTitle, getSeedNote(text));

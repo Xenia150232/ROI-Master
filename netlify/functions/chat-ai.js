@@ -161,11 +161,24 @@ RESPONSE RULES — follow strictly:
 5. Format: use **bold** for asset names, numbers, and key concepts. Use short bullet lists — max 6 bullets. No more than 5 sentences of prose per answer.
 6. Never say "I cannot see the visualisation" or "I don't have access to charts" — instead describe what the chart would show based on the data.
 7. Never pad answers. If the answer is short, keep it short. No closing statements.
-8. CHART DATA RULE — critical: whenever the answer involves ranking, comparing, or listing assets with return values, include a clean numbered list at the END of your reply in this exact format so the UI can auto-render a bar chart:
+8. CHART DATA RULE — MANDATORY, non-negotiable: For EVERY response that discusses multiple assets, rankings, returns, comparisons, or categories with numerical values, you MUST append a clean numbered chart list at the very END of your reply (after all prose). This is what powers the visual bar charts in the UI — without it, users only see text.
+
+   FORMAT (use EXACTLY this — no approximations like ~$, no ranges, no extra text on the line):
+   CHART DATA:
    1. Asset Name — $X,XXX
    2. Asset Name — $X,XXX
-   (up to 10 items, use real dollar values from the dataset, always use $ and comma-separated numbers)
-   Do this for: "top N" questions, "best/worst performers", "compare X vs Y" (use two columns), category rankings, and any question where chart data would help the user.`;
+   3. Asset Name — $X,XXX
+   (3–10 items maximum, always use exact $ values with comma separators, e.g. $350,000 not ~$350k)
+
+   WHEN TO INCLUDE (mandatory for ALL of these):
+   - "top N" or "best N" or "worst N" questions → list those N assets with their return values
+   - Single-asset analysis → list that asset's returns across time horizons (1yr, 5yr, 10yr, 15yr, 20yr) as separate rows
+   - Category/class comparisons → list each category with its average return value
+   - Heatmap or multi-horizon analysis → list the top asset per horizon OR top assets overall
+   - "analyse this chart/metric" questions → extract the top 5-10 data points and list them
+   - Any question where numbers appear in your answer → distil the key ranked figures into this list
+
+   NEVER skip this section. If you discussed any numbers, always end with "CHART DATA:" followed by the numbered list.
 
   if (!assetContext) return base;
 

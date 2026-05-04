@@ -14,7 +14,8 @@
 const LLM_API_URL = process.env.LLM_API_URL || 'https://api.deepseek.com/v1/chat/completions';
 const MODEL = process.env.LLM_MODEL || 'deepseek-v4-flash';
 const MAX_TOKENS = 800;
-const THINKING_TOKENS = 512; // budget_tokens for the reasoning chain — keep modest so responses fit in function timeout
+// DeepSeek V4 uses reasoning_effort ("none"|"high"|"max") — NOT the Claude-style thinking block
+const REASONING_EFFORT = 'high';
 
 exports.handler = async function (event) {
   const headers = {
@@ -94,9 +95,10 @@ exports.handler = async function (event) {
       body: JSON.stringify({
         model: MODEL,
         max_tokens: MAX_TOKENS,
-        // Enable DeepSeek thinking mode — reasoning_content returned alongside content
-        thinking: { type: 'enabled', budget_tokens: THINKING_TOKENS },
-        // Note: temperature/top_p must be omitted in thinking mode
+        temperature: 0.6,
+        // DeepSeek V4 reasoning: "none" | "high" | "max"
+        // reasoning_content is returned in choices[0].message.reasoning_content
+        reasoning_effort: REASONING_EFFORT,
         messages: [
           { role: 'system', content: systemPrompt },
           ...historyMessages,
@@ -119,6 +121,8 @@ exports.handler = async function (event) {
     const message_out = data.choices?.[0]?.message || {};
     const reply = message_out.content || '';
     const reasoning = message_out.reasoning_content || '';
+    // Log if reply is unexpectedly empty so it's visible in Netlify function logs
+    if (!reply) console.warn('Empty reply from LLM. finish_reason:', data.choices?.[0]?.finish_reason, 'usage:', JSON.stringify(data.usage));
     return {
       statusCode: 200,
       headers,

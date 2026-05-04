@@ -86,7 +86,8 @@ The built-in chat widget operates in two modes:
 - **Live in-chat charts** — whenever the AI's response contains a ranked list, top-N comparison, or side-by-side group breakdown, a Canvas-rendered horizontal bar chart is drawn automatically inside the message bubble — no button, no modal, no separate tab
 - **Comparison charts** — when the AI contrasts two groups (e.g. Asia vs Europe across time horizons), the chart interleaves bars from both sides so the comparison is instantly visual
 - **Voice readout (Web Speech API)** — each bot reply is spoken aloud via the browser's native `SpeechSynthesis` API. The voice picker prioritises natural, warm female voices (Samantha, Google UK English Female, Karen, etc.). A speaker icon in the chat header lets users mute/unmute; preference persists via `localStorage`
-- **Follow-up pills** — after every response, 6 contextual follow-up questions appear as clickable pills derived from the specific assets, categories, and time horizons mentioned in the reply
+- **Dynamic follow-up pills** — after every AI response, 6 contextual follow-up questions appear as clickable pills derived from the specific assets, categories, and time horizons mentioned in the reply. These are generated dynamically from the conversation context — not a fixed list. Each response produces different pills tailored to what was just discussed (e.g. after asking about tech stocks you might see pills for semiconductors, AI ETFs, or 10-year comparisons). The opening quick-question pills are also randomised on each visit from a pool of 35+ investment topics
+
 - **Persistent history** — the full conversation is saved to localStorage and restored on return, with charts replayed from stored data
 - **Visualisation awareness** — the chatbot knows the names and purpose of all 7 dashboard charts and describes what each shows using live dataset figures
 - **Guardrails** — three layers of protection: client-side input blocking, server-side pattern matching, and a hardened system prompt that enforces read-only behaviour and resists prompt injection
@@ -107,9 +108,11 @@ If you don't want to use Netlify, the `netlify/functions/chat-ai.js` serverless 
 
 | Platform | How to adapt |
 |----------|-------------|
-| **Vercel** | Move the file to `api/chat-ai.js` and export a default `async function handler(req, res)`. Add `AI_Chat_LLM` in the Vercel project's Environment Variables settings. |
-| **Cloudflare Workers** | Rewrite using the Workers fetch event pattern. Store the API key as a Worker secret via `wrangler secret put AI_Chat_LLM`. |
-| **AWS Lambda** | Wrap the function body in `exports.handler = async (event) => { ... }` and store the key in AWS Secrets Manager or as a Lambda environment variable. |
+| **Cloudflare Workers** | Rewrite using the Workers fetch event pattern. Store the API key as a Worker secret via `wrangler secret put AI_Chat_LLM`. Replace Netlify Blobs with Cloudflare KV for rate limiting. |
+| **AWS Lambda** | The function already uses `exports.handler` — deploy as-is. Store the key in AWS Secrets Manager or as a Lambda environment variable. Replace Netlify Blobs with DynamoDB for rate limiting. |
+| **Supabase Edge Functions** | Rewrite as a Deno function using `Deno.serve`. Store `AI_Chat_LLM` as a Supabase secret. Use a Supabase Postgres table or Supabase KV for rate limiting. |
+| **Firebase (Cloud Functions)** | Export as `exports.chatAi = functions.https.onRequest(handler)`. Store the key via `firebase functions:config:set`. Use Firestore for rate limiting. |
+| **Coolify** | Deploy as a Node.js Express app on your self-hosted Coolify instance. Set `AI_Chat_LLM` as an environment variable in the Coolify UI. Use Redis or a Postgres table for rate limiting. |
 | **Railway / Render / Fly.io** | Deploy as a small Express or Hono server. Point `AI_ENDPOINT` in `public/chat.js` to your deployed URL. |
 | **Self-hosted VPS** | Run a minimal Node.js Express server on any VPS (DigitalOcean, Linode, Hetzner). Set `AI_Chat_LLM` as a system environment variable. |
 

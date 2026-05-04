@@ -821,6 +821,45 @@ input[type=checkbox]{accent-color:var(--primary);width:15px;height:15px;cursor:p
 [data-theme="dark"] .chat-call-counter-bar.counter-low{background:rgba(217,119,6,.12);color:#fbbf24}
 [data-theme="dark"] .chat-call-counter-bar.counter-empty{background:rgba(220,38,38,.1);color:#f87171}
 
+/* ── Counter info icon + tooltip ─────────────────────────────── */
+.counter-info-wrap{position:relative;display:inline-flex;align-items:center;margin-left:1px;cursor:default}
+.counter-info-icon{opacity:.7;flex-shrink:0;transition:opacity 150ms}
+.counter-info-wrap:hover .counter-info-icon{opacity:1}
+.counter-info-tooltip{
+  position:absolute;bottom:calc(100% + 7px);left:50%;transform:translateX(-50%);
+  background:var(--surface,#fff);color:var(--text,#1a202c);
+  border:1px solid var(--border,#e2e8f0);border-radius:7px;
+  padding:7px 10px;font-size:11px;font-weight:400;line-height:1.45;
+  white-space:nowrap;pointer-events:none;opacity:0;
+  box-shadow:0 4px 14px rgba(0,0,0,.12);
+  transition:opacity 150ms,transform 150ms;
+  transform:translateX(-50%) translateY(4px);
+  z-index:9999;
+}
+.counter-info-wrap:hover .counter-info-tooltip{
+  opacity:1;pointer-events:auto;
+  transform:translateX(-50%) translateY(0);
+}
+.counter-info-tooltip a{color:var(--primary,#2563eb);text-decoration:underline;text-decoration-color:transparent;transition:text-decoration-color 150ms}
+.counter-info-tooltip a:hover{text-decoration-color:var(--primary,#2563eb)}
+/* arrow */
+.counter-info-tooltip::after{
+  content:'';position:absolute;top:100%;left:50%;transform:translateX(-50%);
+  border:5px solid transparent;border-top-color:var(--border,#e2e8f0);
+}
+.counter-info-tooltip::before{
+  content:'';position:absolute;top:calc(100% - 1px);left:50%;transform:translateX(-50%);
+  border:5px solid transparent;border-top-color:var(--surface,#fff);
+  z-index:1;
+}
+[data-theme="dark"] .counter-info-tooltip{
+  background:var(--surface,#1e293b);color:var(--text,#e2e8f0);
+  border-color:var(--border,#334155);
+  box-shadow:0 4px 14px rgba(0,0,0,.35);
+}
+[data-theme="dark"] .counter-info-tooltip::after{border-top-color:var(--border,#334155)}
+[data-theme="dark"] .counter-info-tooltip::before{border-top-color:var(--surface,#1e293b)}
+
 /* ── Rate limit message ──────────────────────────────────────── */
 .chat-msg-rate-limit{
   display:flex !important;align-items:flex-start;gap:10px;

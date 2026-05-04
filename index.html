@@ -3,7 +3,73 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<!-- Primary Meta -->
 <title>ROI Master - Investment Dashboard — See growth across investments and asset classes with modern data visualisations and AI chat analysis by Qaunain Meghjee</title>
+<meta name="description" content="ROI Master is a free investment analysis dashboard covering 300+ global assets — stocks, ETFs, commodities, and real estate — with AI chat analysis, live in-chat charts, and returns across 1, 5, 10, 15 and 20-year horizons. No login required.">
+<meta name="keywords" content="investment dashboard, ROI calculator, stock returns, ETF performance, asset comparison, AI investment analysis, long-term returns, portfolio visualisation, compound growth, investment data tool">
+<meta name="author" content="Qaunain Meghjee">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="https://roimaster.netlify.app/">
+
+<!-- Open Graph (Facebook, LinkedIn, etc.) -->
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://roimaster.netlify.app/">
+<meta property="og:title" content="ROI Master — Investment Dashboard with AI Chat Analysis">
+<meta property="og:description" content="Compare returns across 300+ assets — stocks, ETFs, commodities, real estate — at 1, 5, 10, 15 and 20-year horizons. Ask the built-in AI assistant anything and it answers in plain English with live charts.">
+<meta property="og:image" content="https://roimaster.netlify.app/Images/ROI_Master_-_001.png">
+<meta property="og:image:alt" content="ROI Master Investment Dashboard screenshot showing charts and AI chat">
+<meta property="og:site_name" content="ROI Master">
+<meta property="og:locale" content="en_GB">
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:url" content="https://roimaster.netlify.app/">
+<meta name="twitter:title" content="ROI Master — Investment Dashboard with AI Chat Analysis">
+<meta name="twitter:description" content="Compare 300+ assets across 1–20 year horizons. AI chat draws live charts inside replies. Free, open source, no login.">
+<meta name="twitter:image" content="https://roimaster.netlify.app/Images/ROI_Master_-_001.png">
+<meta name="twitter:image:alt" content="ROI Master Investment Dashboard">
+<meta name="twitter:creator" content="@qaunainm">
+
+<!-- Structured Data (JSON-LD) -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "ROI Master",
+  "url": "https://roimaster.netlify.app/",
+  "description": "Free investment analysis dashboard covering 300+ global assets with AI chat analysis, live in-chat charts, and returns across 1, 5, 10, 15 and 20-year horizons.",
+  "applicationCategory": "FinanceApplication",
+  "operatingSystem": "Web",
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "USD"
+  },
+  "author": {
+    "@type": "Person",
+    "name": "Qaunain Meghjee",
+    "url": "https://www.qaunain.com",
+    "sameAs": [
+      "https://www.linkedin.com/in/qaunainm/",
+      "https://github.com/QaunainM"
+    ]
+  },
+  "screenshot": "https://roimaster.netlify.app/Images/ROI_Master_-_001.png",
+  "featureList": [
+    "300+ global assets across stocks, ETFs, commodities, and real estate",
+    "Returns at 1, 5, 10, 15 and 20-year horizons",
+    "AI chat assistant with live in-chat bar charts",
+    "7 interactive data visualisations",
+    "CSV import and export",
+    "Dark mode",
+    "No login required"
+  ],
+  "isAccessibleForFree": true,
+  "license": "https://opensource.org/licenses/MIT"
+}
+</script>
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300..700&display=swap" rel="stylesheet">
@@ -484,12 +550,36 @@
 <script src="app.js"></script>
 <script src="chat.js"></script>
 <script>
+  const _TITLE_MAIN  = 'ROI Master - Investment Dashboard — See growth across investments and asset classes with modern data visualisations and AI chat analysis by Qaunain Meghjee';
+  const _TITLE_ABOUT = 'About ROI Master — Investment Dashboard by Qaunain Meghjee';
+  const _DESC_MAIN   = 'ROI Master is a free investment analysis dashboard covering 300+ global assets — stocks, ETFs, commodities, and real estate — with AI chat analysis, live in-chat charts, and returns across 1, 5, 10, 15 and 20-year horizons. No login required.';
+  const _DESC_ABOUT  = 'Learn about ROI Master — a free, open-source investment analysis dashboard built by Qaunain Meghjee. 300+ assets, AI chat analysis, 7 interactive charts, and no login required.';
+
+  function _setMeta(title, desc, canonical) {
+    document.title = title;
+    const descEl = document.querySelector('meta[name="description"]');
+    if (descEl) descEl.setAttribute('content', desc);
+    const ogTitle = document.querySelector('meta[property="og:title"]');
+    if (ogTitle) ogTitle.setAttribute('content', title);
+    const ogDesc = document.querySelector('meta[property="og:description"]');
+    if (ogDesc) ogDesc.setAttribute('content', desc);
+    const ogUrl = document.querySelector('meta[property="og:url"]');
+    if (ogUrl) ogUrl.setAttribute('content', 'https://roimaster.netlify.app' + canonical);
+    const canEl = document.querySelector('link[rel="canonical"]');
+    if (canEl) canEl.setAttribute('href', 'https://roimaster.netlify.app' + canonical);
+    const twTitle = document.querySelector('meta[name="twitter:title"]');
+    if (twTitle) twTitle.setAttribute('content', title);
+    const twDesc = document.querySelector('meta[name="twitter:description"]');
+    if (twDesc) twDesc.setAttribute('content', desc);
+  }
+
   // About modal
   function openAboutModal() {
     const overlay = document.getElementById('aboutOverlay');
     overlay.style.display = 'flex';
     requestAnimationFrame(() => overlay.classList.add('about-overlay-visible'));
     history.pushState({ about: true }, '', '/about');
+    _setMeta(_TITLE_ABOUT, _DESC_ABOUT, '/about');
     document.addEventListener('keydown', _aboutEscHandler);
   }
   function closeAboutModal() {
@@ -497,6 +587,7 @@
     overlay.classList.remove('about-overlay-visible');
     overlay.addEventListener('transitionend', () => { overlay.style.display = 'none'; }, { once: true });
     if (location.pathname === '/about') history.pushState({}, '', '/');
+    _setMeta(_TITLE_MAIN, _DESC_MAIN, '/');
     document.removeEventListener('keydown', _aboutEscHandler);
   }
   function _aboutEscHandler(e) { if (e.key === 'Escape') closeAboutModal(); }
@@ -506,13 +597,18 @@
   // Handle direct /about URL or redirect unknown paths to /
   const _path = location.pathname;
   if (_path === '/about') {
+    _setMeta(_TITLE_ABOUT, _DESC_ABOUT, '/about');
     openAboutModal();
   } else if (_path !== '/' && _path !== '/index.html') {
     history.replaceState({}, '', '/');
   }
-  // Handle browser back
+  // Handle browser back/forward
   window.addEventListener('popstate', function(e) {
-    if (location.pathname !== '/about') closeAboutModal();
+    if (location.pathname === '/about') {
+      openAboutModal();
+    } else {
+      closeAboutModal();
+    }
   });
 </script>
 </body>

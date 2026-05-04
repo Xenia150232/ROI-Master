@@ -11,6 +11,19 @@
   # Max 26s on Netlify free tier — generous budget for LLM reasoning chains
   timeout = 26
 
+# Redirect www to non-www
+[[redirects]]
+  from = "https://www.roimaster.netlify.app/*"
+  to = "https://roimaster.netlify.app/:splat"
+  status = 301
+  force = true
+
+# Pass through static assets so social crawlers can fetch OG images
+[[redirects]]
+  from = "/public/*"
+  to = "/public/:splat"
+  status = 200
+
 # Serve index.html for all routes — /about opens the modal, unknown paths redirect to /
 [[redirects]]
   from = "/*"

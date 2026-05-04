@@ -334,6 +334,32 @@ input[type=checkbox]{accent-color:var(--primary);width:15px;height:15px;cursor:p
 .mini-expand-btn:hover{border-color:var(--primary);color:var(--primary)}
 .mini-expand-btn.expanded{background:var(--primary-bg);border-color:var(--primary);color:var(--primary)}
 
+/* AI Analyse hover button — appears on KPI cards and chart cards */
+.ai-analyse-btn{
+  position:absolute;bottom:10px;right:10px;
+  display:flex;align-items:center;gap:5px;
+  padding:5px 11px;
+  font-size:11px;font-weight:700;letter-spacing:.04em;
+  color:#fff;
+  background:var(--primary);
+  border:none;border-radius:20px;
+  cursor:pointer;
+  box-shadow:0 2px 8px rgba(37,99,235,.35);
+  opacity:0;pointer-events:none;
+  transform:translateY(4px);
+  transition:opacity 160ms ease,transform 160ms ease;
+  white-space:nowrap;
+  z-index:10;
+}
+.ai-analyse-btn svg{flex-shrink:0}
+.kpi-card:hover .ai-analyse-btn,
+.chart-mini:hover .ai-analyse-btn{
+  opacity:1;pointer-events:auto;transform:translateY(0);
+}
+.kpi-card{position:relative}
+.chart-mini{position:relative}
+.ai-analyse-btn:hover{background:#1d4ed8;box-shadow:0 3px 12px rgba(37,99,235,.5)}
+
 /*
   Grid — 20 fractional columns.
   Row 1: Best Returns 50% | Returns by Asset Class 50%

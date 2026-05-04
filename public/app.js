@@ -145,14 +145,65 @@ function buildKPICards(d){
 
   function encodeAssets(arr){ return encodeURIComponent(JSON.stringify(arr)); }
 
+  function kpiAiPrompt(label, val, sub) {
+    const l = label.toLowerCase();
+    if (l.includes('best 1-year'))  return `What makes the best 1-year return asset stand out? (current leader: ${val} — ${sub})`;
+    if (l.includes('best 5-year'))  return `Analyse the best 5-year performer (${val} — ${sub}). Why might it outperform over 5 years?`;
+    if (l.includes('best 10-year')) return `Analyse the best 10-year performer (${val} — ${sub}). What drives this kind of 10-year compounding?`;
+    if (l.includes('best 15-year')) return `Analyse the best 15-year performer (${val} — ${sub}). Is a 15-year hold strategy meaningful here?`;
+    if (l.includes('best 20-year')) return `Analyse the best 20-year performer (${val} — ${sub}). What does 20-year compounding look like for this asset?`;
+    if (l.includes('worst 1-year')) return `Why is the worst 1-year performer (${val} — ${sub}) at the bottom? Is there recovery potential?`;
+    if (l.includes('worst 5-year')) return `Analyse the worst 5-year performer (${val} — ${sub}). Is this a value trap or a recovery opportunity?`;
+    if (l.includes('worst 10-year'))return `What can explain the worst 10-year performer (${val} — ${sub})? How does it compare to the dataset average?`;
+    if (l.includes('avg 1-year'))   return `What does an average 1-year return of ${val} tell us about short-term investing in this dataset?`;
+    if (l.includes('avg 5-year'))   return `An average 5-year return of ${val} — is this a good benchmark? How does it compare to index funds?`;
+    if (l.includes('avg 10-year'))  return `Analyse the average 10-year return of ${val} across this dataset. What does this imply for long-term investing?`;
+    if (l.includes('avg 20-year'))  return `What does an average 20-year return of ${val} tell us? How much is this skewed by outliers?`;
+    if (l.includes('median 10-year'))return `The median 10-year value is ${val}. What can we learn comparing the median to the average here?`;
+    if (l.includes('median 20-year'))return `With a median 20-year value of ${val}, what does a realistic long-term investment outcome look like?`;
+    if (l.includes('10x in 10'))    return `${val} of assets turned $1,000 into $10,000+ in 10 years. What kind of assets tend to achieve this?`;
+    if (l.includes('10x in 20'))    return `${val} of assets hit 10x over 20 years. Is this a realistic target for a diversified portfolio?`;
+    if (l.includes('25x club'))     return `Analyse the assets in the 25x club (10Y). What do they have in common?`;
+    if (l.includes('50x club'))     return `Analyse the 50x club over 20 years. What characteristics do these generational compounders share?`;
+    if (l.includes('winners vs losers')) return `${val} — analyse this winners vs losers split. What does the ratio of gainers to losers tell us?`;
+    if (l.includes('top multiplier'))    return `The top 20-year multiplier is ${val} (${sub}). How does extreme outlier compounding affect portfolio thinking?`;
+    if (l.includes('best 10y multiplier'))return `Best 10-year growth multiple is ${val} (${sub}). What drives such extreme 10-year growth?`;
+    if (l.includes('largest section'))   return `${val} is the largest asset section. Does a larger section mean more diversification or concentration risk?`;
+    if (l.includes('avg 1-year growth')) return `An average 1-year growth multiple of ${val} — how much of the dataset is actually growing above 1x?`;
+    if (l.includes('avg 5-year growth')) return `Average 5-year growth multiple of ${val}. What does this say about medium-term asset performance?`;
+    if (l.includes('avg 20-year growth'))return `Average 20-year growth multiple of ${val}. How meaningful is this average given extreme outliers?`;
+    if (l.includes('top 10 avg (10y)')) return `The average of the top 10 assets at 10 years is ${val}. What would a best-case concentrated portfolio look like?`;
+    if (l.includes('top 10 avg (20y)')) return `The top 10 assets average ${val} over 20 years. How realistic is picking these in advance?`;
+    if (l.includes('beat 2x in 1'))      return `${val} doubled or more in a single year. What types of assets tend to produce 2x annual returns?`;
+    if (l.includes('beat 5x in 5'))      return `${val} achieved 5x in 5 years. Is this achievable without taking on extreme risk?`;
+    if (l.includes('beat 20x in 10'))    return `${val} achieved 20x in 10 years. What does ~35% annual CAGR look like in practice?`;
+    if (l.includes('negative at 5y'))    return `${val} are still below the seed value at 5 years. What makes these assets underperform for so long?`;
+    if (l.includes('negative at 10y'))   return `${val} are still below seed value after 10 years. Should long-term investors avoid these, or wait longer?`;
+    if (l.includes('data coverage'))     return `Only ${val} have 20-year data. How does survivorship bias affect long-term return statistics?`;
+    if (l.includes('highest 1y volatility')) return `The spread between best and worst 1-year return is ${val}. What does this say about short-term risk in this dataset?`;
+    if (l.includes('seed investment'))   return `With a seed investment of ${val}, how does compounding change the outcome at 10 vs 20 years?`;
+    if (l.includes('upside outliers'))   return `${val} are upside outliers at 10 years. Should investors target outliers or avoid them?`;
+    if (l.includes('downside outliers')) return `${val} are downside outliers at 10 years. What patterns do persistent underperformers share?`;
+    if (l.includes('total assets'))      return `There are ${val} assets in view. How does the breadth of this dataset affect the insights we can draw?`;
+    if (l.includes('categories'))        return `With ${val} unique categories, how well does this dataset cover the investment universe?`;
+    return `Analyse the "${label}" metric: ${val} — ${sub}`;
+  }
+
+  function encodeAssets(arr){ return encodeURIComponent(JSON.stringify(arr)); }
+
+  const AI_BTN = `<button class="ai-analyse-btn" onclick="event.stopPropagation();kpiAiClick(this)" tabindex="-1"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20z"/><path d="M12 8v4l3 3"/></svg>Analyse with AI</button>`;
+
   const card=(icon,label,val,sub,accent='var(--primary)',tip='',assets=[])=>{
     const tipAttr=tip?` data-kpi-tip="${tip.replace(/"/g,'&quot;')}"`:''
     const assetsAttr=assets.length?` data-kpi-assets="${encodeAssets(assets)}"`:''
-    return `<div class="kpi-card" style="--card-accent:${accent}"${tipAttr}${assetsAttr} onmouseenter="showKpiTip(event,this)" onmouseleave="hideKpiTip()">
+    const prompt = kpiAiPrompt(label, val, sub);
+    const promptAttr = ` data-ai-prompt="${prompt.replace(/"/g,'&quot;')}"`;
+    return `<div class="kpi-card" style="--card-accent:${accent}"${tipAttr}${assetsAttr}${promptAttr} onmouseenter="showKpiTip(event,this)" onmouseleave="hideKpiTip()">
       <div class="kpi-icon">${icon}</div>
       <div class="kpi-label">${label}</div>
       <div class="kpi-value" style="color:${accent}">${val}</div>
       <div class="kpi-sub">${sub}</div>
+      ${AI_BTN}
     </div>`;
   };
 
@@ -1501,6 +1552,41 @@ function showKpiTip(e,el){
 function hideKpiTip(){
   const tip=document.getElementById('kpiTipFloat');
   if(tip) tip.style.display='none';
+}
+
+function kpiAiClick(btn){
+  const card = btn.closest('.kpi-card');
+  const prompt = card && card.getAttribute('data-ai-prompt');
+  if(prompt && window.openChatWithPrompt) window.openChatWithPrompt(prompt, prompt);
+}
+
+function chartAiClick(chart){
+  if(!window.openChatWithPrompt) return;
+  const sec = activeSection === 'All' ? 'across all asset classes' : `in the ${activeSection} section`;
+  let prompt;
+  switch(chart){
+    case 'top10':
+      prompt = `Analyse the top 10 best-returning assets ${sec} over ${top10Range} years. What do the leaders have in common and what can investors learn from them?`;
+      break;
+    case 'section':
+      prompt = `Compare the median ${sectionRange}-year returns across asset classes ${sec}. Which asset class stands out and why?`;
+      break;
+    case 'heatmap':
+      prompt = `Analyse the average return heatmap ${sec} across all time horizons (1Y, 5Y, 10Y, 15Y, 20Y). Which asset classes show consistent growth and which are volatile?`;
+      break;
+    case 'scatter':
+      prompt = `Looking at median returns by time horizon ${sec}, how does holding period affect investment outcomes? Which asset classes improve most with longer holds?`;
+      break;
+    case 'catCount':
+      prompt = `Analyse the category breakdown ${sec} at the ${catCountRange}-year horizon. Does a category with more assets tend to produce better or worse average returns?`;
+      break;
+    case 'catRoi':
+      prompt = `Which categories have the highest average ${catRoiRange}-year ROI ${sec}? What drives the top categories and should investors concentrate there?`;
+      break;
+    default:
+      prompt = `Analyse the investment data ${sec}.`;
+  }
+  window.openChatWithPrompt(prompt, prompt);
 }
 
 // ===== HEATMAP TOOLTIP =====

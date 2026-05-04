@@ -325,10 +325,26 @@ As someone who invests across multiple asset classes, I needed a clear way to vi
 
 ---
 
+## Also by the same creator — CollabDraw
+
+**[CollabDraw](https://www.CollabDraw.com)** is a real-time collaborative UX and design canvas — an infinite workspace where teams can design, draw, and create together live.
+
+Key features:
+- **Infinite canvas** with real-time multiplayer (see your teammates' cursors live)
+- **Full media library** — millions of images, icons, and assets ready to drop in
+- **AI image generation** — generate visuals directly on the canvas
+- **Charts, shapes, and diagramming tools** built in
+- **Hundreds of templates** to get started instantly
+- No install required — works in the browser
+
+**[Try CollabDraw free →](https://www.CollabDraw.com)**
+
+---
+
 ## License
 
 MIT — free to use, fork, and modify.
 
 ---
 
-ROI Master — A tool that lets you see growth across investments and asset classes with modern data visualisations and AI chat analysis. Made by <a href="https://www.qaunain.com" target="_blank">Qaunain Meghjee</a>. <a href="https://github.com/QaunainM/ROI-Master" target="_blank">Clone this on GitHub</a>.
+ROI Master — A tool that lets you see growth across investments and asset classes with modern data visualisations and AI chat analysis. Made by <a href="https://www.qaunain.com" target="_blank">Qaunain Meghjee</a>. <a href="https://github.com/QaunainM/ROI-Master" target="_blank">Clone this on GitHub</a>. Also check out <a href="https://www.CollabDraw.com" target="_blank">CollabDraw</a> — real-time collaborative design canvas.

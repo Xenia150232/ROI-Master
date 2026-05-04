@@ -460,13 +460,21 @@
       </div>
 
       <div class="about-section about-features-grid">
-        <div class="about-feature">
+        <div class="about-feature about-feature-charts">
           <div class="about-feature-icon">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
           </div>
           <div>
-            <strong>7 Interactive Charts</strong>
-            <span>Bar, heatmap, donut, line &amp; scatter — every one has a one-click AI analysis button</span>
+            <strong>7 Interactive Charts — each with one-click AI analysis</strong>
+            <ul class="about-charts-list">
+              <li><b>Best Returns</b> — top 10 assets by value at any time horizon (1Y–20Y), switchable via range tabs</li>
+              <li><b>Returns by Asset Class</b> — median return per class (Stocks, ETFs, Commodities, Real Estate) at any horizon</li>
+              <li><b>Avg Return Heatmap</b> — colour-coded grid showing average return per asset class across all five horizons simultaneously, with hover tooltips</li>
+              <li><b>Median Return by Horizon</b> — grouped bars comparing how each asset class compounds differently over time</li>
+              <li><b>Category Breakdown</b> — donut chart of asset count or average return by category (top 15), switchable by horizon</li>
+              <li><b>Top Categories by ROI</b> — horizontal bar ranking of sub-categories (AI, EV, Payments, etc.) by average return</li>
+              <li><b>ROI Growth Chart</b> — multi-asset line chart that appears when you select rows; compare up to any number of assets side by side across 1Y–20Y</li>
+            </ul>
           </div>
         </div>
         <div class="about-feature">
@@ -539,6 +547,20 @@
         </div>
       </div>
 
+      <!-- CollabDraw cross-promo -->
+      <div class="about-collab-promo">
+        <div class="about-collab-inner">
+          <div class="about-collab-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M8 12h8M12 8v8"/></svg>
+          </div>
+          <div class="about-collab-text">
+            <strong>Also by the same creator — <a href="https://www.CollabDraw.com" target="_blank" rel="noopener">CollabDraw</a></strong>
+            <span>Real-time collaborative design canvas with an infinite workspace, full media library, AI image generation, charts, shapes, and live multiplayer. Everything your team needs to create together — hundreds of templates, millions of images.</span>
+          </div>
+          <a href="https://www.CollabDraw.com" target="_blank" rel="noopener" class="about-collab-btn">Try it free →</a>
+        </div>
+      </div>
+
       <div class="about-footer-note">
         ROI Master is open source and free to use. <a href="https://github.com/QaunainM/ROI-Master" target="_blank" rel="noopener">Fork it on GitHub</a> and build your own version.
       </div>
@@ -546,10 +568,39 @@
   </div>
 </div>
 
+<!-- CollabDraw Toast -->
+<div id="collabToast" class="collab-toast" role="status" aria-live="polite" style="display:none">
+  <div class="collab-toast-inner">
+    <div class="collab-toast-icon">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M8 12h8M12 8v8"/></svg>
+    </div>
+    <div class="collab-toast-body">
+      <p class="collab-toast-title">Try CollabDraw — free collaborative design canvas</p>
+      <p class="collab-toast-desc">Infinite canvas · AI image generation · live multiplayer · 100s of templates</p>
+    </div>
+    <a href="https://www.CollabDraw.com" target="_blank" rel="noopener" class="collab-toast-cta">Visit →</a>
+    <button class="collab-toast-close" onclick="document.getElementById('collabToast').classList.remove('collab-toast-visible');setTimeout(()=>document.getElementById('collabToast').style.display='none',350)" aria-label="Dismiss">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+</div>
+
 <script src="data.js"></script>
 <script src="app.js"></script>
 <script src="chat.js"></script>
 <script>
+  // CollabDraw toast — shown once after 60 s, once per session
+  (function() {
+    if (sessionStorage.getItem('collab_toast_shown')) return;
+    setTimeout(function() {
+      const t = document.getElementById('collabToast');
+      if (!t) return;
+      t.style.display = 'flex';
+      requestAnimationFrame(function() { requestAnimationFrame(function() { t.classList.add('collab-toast-visible'); }); });
+      sessionStorage.setItem('collab_toast_shown', '1');
+    }, 60000);
+  })();
+
   const _TITLE_MAIN  = 'ROI Master - Investment Dashboard — See growth across investments and asset classes with modern data visualisations and AI chat analysis by Qaunain Meghjee';
   const _TITLE_ABOUT = 'About ROI Master — Investment Dashboard by Qaunain Meghjee';
   const _DESC_MAIN   = 'ROI Master is a free investment analysis dashboard covering 300+ global assets — stocks, ETFs, commodities, and real estate — with AI chat analysis, live in-chat charts, and returns across 1, 5, 10, 15 and 20-year horizons. No login required.';

@@ -447,7 +447,7 @@
 
     let answer = null;
 
-    if (aiAvailable) {
+    if (aiAvailable !== false) {
       answer = await fetchAIAnswer(text, chatHistory.slice(0, -1)); // pass history excluding the just-added user msg
     }
 

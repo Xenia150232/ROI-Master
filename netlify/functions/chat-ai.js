@@ -13,8 +13,8 @@
 
 const LLM_API_URL = process.env.LLM_API_URL || 'https://api.deepseek.com/v1/chat/completions';
 const MODEL = process.env.LLM_MODEL || 'deepseek-v4-flash';
-const MAX_TOKENS = 700;
-const THINKING_TOKENS = 1024; // budget_tokens for the reasoning chain
+const MAX_TOKENS = 800;
+const THINKING_TOKENS = 512; // budget_tokens for the reasoning chain — keep modest so responses fit in function timeout
 
 exports.handler = async function (event) {
   const headers = {

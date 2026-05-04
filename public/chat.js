@@ -315,7 +315,7 @@
     setSendDisabled(true);
 
     let answer = null;
-    if (aiAvailable) {
+    if (aiAvailable !== false) {
       answer = await fetchAIAnswer(q.label, chatHistory.slice(0, -1));
     }
     if (!answer) {
@@ -423,14 +423,25 @@
       // Send last 8 exchanges (16 messages) for context without bloating the request
       const conversationHistory = (history || []).slice(-16);
 
+      // Generous timeout — DeepSeek thinking mode can take 15-25s for complex reasoning
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 55000);
+
       const res = await fetch(AI_ENDPOINT, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message, assetContext, conversationHistory }),
+        signal: controller.signal,
       });
+      clearTimeout(timeoutId);
 
-      if (!res.ok) return null;
+      if (!res.ok) {
+        console.warn('AI endpoint returned', res.status);
+        return null;
+      }
       const data = await res.json();
+
+      if (data.error) console.warn('AI error:', data.error);
 
       if (!data.ai_available) {
         aiAvailable = false;
@@ -441,7 +452,8 @@
       const reasoning = typeof data.reasoning === 'string' ? data.reasoning.trim() : '';
       // Return as object so callers can access reasoning separately
       return reply ? { reply, reasoning } : null;
-    } catch {
+    } catch (err) {
+      console.warn('AI fetch failed:', err?.name || err);
       return null;
     }
   }
@@ -784,7 +796,7 @@
         setTimeout(async () => {
           showTyping(false);
           let answer = null;
-          if (aiAvailable) answer = await fetchAIAnswer(text, chatHistory.slice(0, -1));
+          if (aiAvailable !== false) answer = await fetchAIAnswer(text, chatHistory.slice(0, -1));
           if (!answer) answer = answerFreeText(text);
           addBotMsg(answer);
           const replyStr = (answer && typeof answer === 'object') ? answer.reply : answer;
@@ -799,6 +811,41 @@
   }
 
   // ── Answer helpers ───────────────────────────────────────────
+
+  // Deterministic local comparison of a pinned set of assets across all horizons.
+  // Used as a fallback when the AI call fails during a Compare request so the user
+  // still gets a response focused on the assets they actually selected.
+  function localComparePinned(pinned) {
+    const horizons = [['1Y','v1'],['5Y','v5'],['10Y','v10'],['15Y','v15'],['20Y','v20']];
+    const seed = (typeof window.seedMultiplier !== 'undefined') ? 1000 * window.seedMultiplier : 1000;
+
+    let out = `Comparison of ${pinned.length} selected assets (from $${seed.toLocaleString()}):\n\n`;
+
+    for (const [label, key] of horizons) {
+      const withVal = pinned.filter(a => a[key] && !isNaN(a[key]));
+      if (!withVal.length) continue;
+      const sorted = [...withVal].sort((a,b) => b[key] - a[key]);
+      const top = sorted[0];
+      const bot = sorted[sorted.length - 1];
+      out += `**${label}** — Best: **${top.name}** ${fmt(top[key])} · Worst: **${bot.name}** ${fmt(bot[key])}\n`;
+    }
+
+    // Overall ranking by best available long-horizon value (20>15>10>5>1)
+    const scored = pinned.map(a => {
+      for (const [,k] of [['20','v20'],['15','v15'],['10','v10'],['5','v5'],['1','v1']]) {
+        if (a[k] && !isNaN(a[k])) return { a, v: Number(a[k]), k };
+      }
+      return { a, v: 0, k: null };
+    }).sort((x,y) => y.v - x.v);
+
+    out += `\n**Overall ranking:**\n`;
+    scored.forEach((s, i) => {
+      out += `${i+1}. **${s.a.name}** — ${fmt(s.v)}${s.k ? ` (${s.k.replace('v','')}yr)` : ''}\n`;
+    });
+
+    return out.trim();
+  }
+
   function best10yr(assets, yr = 10) {
     const key = `v${yr}`;
     const seed = (typeof window.seedMultiplier !== 'undefined') ? 1000 * window.seedMultiplier : 1000;
@@ -1459,7 +1506,13 @@
     setSendDisabled(true);
 
     let answer = null;
-    if (aiAvailable) answer = await fetchAIAnswer(aiQuery, chatHistory.slice(0, -1), pinnedAssets || null);
+    // Try AI whenever it's not explicitly unavailable (null = not-yet-probed, still worth trying)
+    if (aiAvailable !== false) answer = await fetchAIAnswer(aiQuery, chatHistory.slice(0, -1), pinnedAssets || null);
+    // If we have pinned assets (compare flow) and AI failed, run a deterministic local comparison
+    // instead of falling through to answerFreeText (which would keyword-match and return wrong assets)
+    if (!answer && pinnedAssets && pinnedAssets.length) {
+      answer = localComparePinned(pinnedAssets);
+    }
     if (!answer) answer = answerFreeText(aiQuery);
 
     showTyping(false);

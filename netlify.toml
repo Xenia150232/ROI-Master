@@ -2,6 +2,14 @@
   publish = "."
   functions = "netlify/functions"
 
+# Extend function timeout for AI thinking-mode responses (DeepSeek reasoning can take 15-25s)
+[functions]
+  node_bundler = "esbuild"
+
+[functions."chat-ai"]
+  # Max 26s on Netlify free tier — generous budget for LLM reasoning chains
+  timeout = 26
+
 # Serve index.html for all routes — /about opens the modal, unknown paths redirect to /
 [[redirects]]
   from = "/*"

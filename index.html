@@ -469,12 +469,18 @@
             <ul class="about-charts-list">
               <li><b>Best Returns</b> — bar chart, top 10 by horizon</li>
               <li><b>Returns by Asset Class</b> — median per class</li>
+              <span class="about-extra-items" id="extra-tile1">
               <li><b>Avg Return Heatmap</b> — colour-coded across all horizons</li>
               <li><b>Median Return by Horizon</b> — grouped bars over time</li>
               <li><b>Category Breakdown</b> — donut, top 15 categories</li>
               <li><b>Top Categories by ROI</b> — horizontal bar ranking</li>
               <li><b>ROI Growth Chart</b> — multi-asset line comparison</li>
+              </span>
             </ul>
+            <button class="about-read-more-btn" id="btn-tile1" onclick="toggleAboutExtra('tile1')">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+              Show 5 more
+            </button>
           </div>
         </div>
         <div class="about-feature">
@@ -486,12 +492,18 @@
             <ul class="about-charts-list">
               <li><b>Live in-chat charts</b> — bar chart drawn inside the reply for any ranked data</li>
               <li><b>Comparison charts</b> — side-by-side bars when contrasting two groups</li>
+              <span class="about-extra-items" id="extra-tile2">
               <li><b>Voice readout</b> — every reply spoken aloud via Web Speech API</li>
               <li><b>6 follow-up pills</b> — contextual suggestions after every response</li>
               <li><b>Persistent history</b> — chat + charts saved and restored on return</li>
               <li><b>Smart fallback</b> — local regex engine when no API key is set</li>
               <li><b>Prompt injection guardrails</b> — read-only, multi-layer protection</li>
+              </span>
             </ul>
+            <button class="about-read-more-btn" id="btn-tile2" onclick="toggleAboutExtra('tile2')">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+              Show 5 more
+            </button>
           </div>
         </div>
         <div class="about-feature">
@@ -503,10 +515,16 @@
             <ul class="about-charts-list">
               <li><b>30 KPI tiles</b> — at-a-glance stats: best performers, medians, outliers, club counts</li>
               <li><b>One-click AI breakdown</b> — hover any tile and hit Analyse with AI for an instant contextual answer</li>
+              <span class="about-extra-items" id="extra-tile3">
               <li><b>Context-aware prompts</b> — questions auto-reflect active section, horizon, and data state</li>
               <li><b>Chart AI analysis</b> — every visualisation also has an Analyse with AI button, no typing needed</li>
               <li><b>Live &amp; reactive</b> — tiles update instantly when filters, seed value, or dataset change</li>
+              </span>
             </ul>
+            <button class="about-read-more-btn" id="btn-tile3" onclick="toggleAboutExtra('tile3')">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+              Show 3 more
+            </button>
           </div>
         </div>
         <div class="about-feature">
@@ -518,10 +536,16 @@
             <ul class="about-charts-list">
               <li><b>Compare classes</b> — Stocks vs ETFs vs Commodities vs Real Estate at any horizon</li>
               <li><b>Filter &amp; search</b> — by class, category tag, or free-text across 300+ assets</li>
+              <span class="about-extra-items" id="extra-tile4">
               <li><b>Adjust seed value</b> — change the initial investment and every figure updates instantly</li>
               <li><b>Exclude rows</b> — remove assets from charts without deleting them</li>
               <li><b>CSV import &amp; export</b> — upload your own dataset or download any filtered view</li>
+              </span>
             </ul>
+            <button class="about-read-more-btn" id="btn-tile4" onclick="toggleAboutExtra('tile4')">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+              Show 3 more
+            </button>
           </div>
         </div>
         <div class="about-feature">
@@ -609,6 +633,23 @@
 <script src="app.js"></script>
 <script src="chat.js"></script>
 <script>
+  function toggleAboutExtra(id) {
+    var extra = document.getElementById('extra-' + id);
+    var btn = document.getElementById('btn-' + id);
+    if (!extra || !btn) return;
+    var isExpanded = extra.classList.contains('expanded');
+    if (isExpanded) {
+      extra.classList.remove('expanded');
+      btn.classList.remove('expanded');
+      var count = extra.querySelectorAll('li').length;
+      btn.innerHTML = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg> Show ' + count + ' more';
+    } else {
+      extra.classList.add('expanded');
+      btn.classList.add('expanded');
+      btn.innerHTML = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg> Show less';
+    }
+  }
+
   // CollabDraw toast — fires 60 s after every page load (no storage check)
   setTimeout(function() {
     var t = document.getElementById('collabToast');

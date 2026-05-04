@@ -128,10 +128,9 @@
     if (!plain) return;
     const utt = new SpeechSynthesisUtterance(plain);
     if (ttsVoice) utt.voice = ttsVoice;
-    // Slightly slower and more natural — less robotic than default
-    utt.rate  = 0.95;
-    utt.pitch = 1.0;
-    utt.volume = 0.85;
+    utt.rate  = 1.05;
+    utt.pitch = 1.1;
+    utt.volume = 0.9;
     window.speechSynthesis.speak(utt);
   }
 
@@ -508,8 +507,8 @@
     // Strip code blocks that contain anything that looks executable
     clean = clean.replace(/```[\s\S]*?```/g, '[code block removed]');
     clean = clean.replace(/`[^`]{60,}`/g, '[code removed]');
-    // Cap length — genuine answers don't need to be very long
-    if (clean.length > 2000) clean = clean.slice(0, 2000) + '…';
+    // Cap length — 1600 tokens ≈ ~6000 chars; never truncate a complete response
+    if (clean.length > 5500) clean = clean.slice(0, 5500) + '…';
     return clean.trim() || null;
   }
 

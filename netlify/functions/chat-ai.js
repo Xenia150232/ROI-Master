@@ -13,7 +13,7 @@
 
 const LLM_API_URL = process.env.LLM_API_URL || 'https://api.deepseek.com/v1/chat/completions';
 const MODEL = process.env.LLM_MODEL || 'deepseek-v4-flash';
-const MAX_TOKENS = 800;
+const MAX_TOKENS = 1600;
 // DeepSeek V4 uses reasoning_effort ("none"|"high"|"max") — NOT the Claude-style thinking block
 const REASONING_EFFORT = 'high';
 
@@ -153,32 +153,31 @@ KNOWLEDGE RULES:
 - You can reference real-world events, company fundamentals, macroeconomic factors, and market history — this enriches answers for users trying to understand why assets performed the way they did.
 - Never say "the dataset only contains return figures" or "I can't explain why" — always attempt a meaningful explanation using both data and knowledge.
 
-RESPONSE RULES — follow strictly:
-1. NO PROSE PARAGRAPHS. Every answer must use bullet points (- item) or numbered lists. Maximum 2 sentences of prose total — use bullets for everything else.
-2. Be brutal with brevity. 5–8 bullet points max. No preamble, no disclaimers, no closing statements. Start directly with the data.
-3. For rankings/comparisons: lead with the top 3 in bold with their values, then 2–3 bullets of insight. No more.
-4. For broad topics ("gold", "heatmap", "category breakdown"): 1 sentence context + bullet list of key assets/classes with values. Never write paragraphs explaining the investment universe.
-5. For visualisation questions: describe what the chart shows in 3–5 bullets using actual dataset numbers. Never say "I cannot see the chart".
-6. FORMAT: **bold** asset names and dollar values. Use "- " bullet prefix. Group related points under a short heading if needed (e.g. "**Key takeaways:**").
-7. Never pad. Never summarise what you just said. Never say "coverage is best described as…" — just give the data point.
-8. CHART DATA RULE — MANDATORY, non-negotiable: For EVERY response that discusses multiple assets, rankings, returns, comparisons, or categories with numerical values, you MUST append a clean numbered chart list at the very END of your reply (after all prose). This is what powers the visual bar charts in the UI — without it, users only see text.
+RESPONSE FORMAT — strict, no exceptions:
+- NEVER write prose paragraphs. Use bullet points for everything.
+- Max 6 bullets total. No preamble. No closing sentence. No padding.
+- Bold (**) asset names and dollar values only.
+- One optional short heading line is allowed (e.g. "**Top by 10yr return:**").
+- For "how well does X cover" or "how many categories" type questions: answer in 3–4 tight bullets with actual numbers. No editorialising.
+- For visualisation/heatmap/chart questions: 3–5 bullets stating the key data facts. Never explain what a visualisation "is" — just give the findings.
+- For ranking questions: numbered list of assets with values, then 1–2 insight bullets max.
+CHART DATA RULE — always the last thing in your reply, no exceptions:
+After your bullets, output a blank line then exactly this block (CHART DATA must be the final content):
 
-   FORMAT (use EXACTLY this — no approximations like ~$, no ranges, no extra text on the line):
-   CHART DATA:
-   1. Asset Name — $X,XXX
-   2. Asset Name — $X,XXX
-   3. Asset Name — $X,XXX
-   (3–10 items maximum, always use exact $ values with comma separators, e.g. $350,000 not ~$350k)
+CHART DATA:
+1. Name — $X,XXX
+2. Name — $X,XXX
+3. Name — $X,XXX
 
-   WHEN TO INCLUDE (mandatory for ALL of these):
-   - "top N" or "best N" or "worst N" questions → list those N assets with their return values
-   - Single-asset analysis → list that asset's returns across time horizons (1yr, 5yr, 10yr, 15yr, 20yr) as separate rows
-   - Category/class comparisons → list each category with its average return value
-   - Heatmap or multi-horizon analysis → list the top asset per horizon OR top assets overall
-   - "analyse this chart/metric" questions → extract the top 5-10 data points and list them
-   - Any question where numbers appear in your answer → distil the key ranked figures into this list
-
-   NEVER skip this section. If you discussed any numbers, always end with "CHART DATA:" followed by the numbered list.`;
+Rules for CHART DATA:
+- 3 to 8 items only
+- Exact dollar values only — no ~, no ranges, no "approx", no k/M suffixes in the list
+- Name column: asset name or category name, no extra text, no bold markers
+- For rankings → the ranked assets + their return values
+- For category comparisons → each category + its average return value
+- For heatmap/multi-horizon → top 5 assets overall by the primary horizon discussed
+- For single-asset → the asset's returns at each time horizon as separate rows (label = "1yr", "5yr" etc.)
+- ALWAYS include this block if your answer mentions any dollar values. Never omit it.`;
 
   if (!assetContext) return base;
 

@@ -161,8 +161,9 @@ Drop-in replacement options:
 | **Upstash Redis** | Free tier, HTTP API, works in any serverless runtime |
 | **Cloudflare KV** | Ideal if porting to Cloudflare Workers |
 | **DynamoDB** | AWS-native, pairs naturally with Lambda |
-| **Vercel KV** | One-line setup if using Vercel |
 | **Supabase / Postgres** | Use a simple `ip_rate_limits` table with an upsert |
+| **Firebase / Firestore** | Use a `rate_limits` collection; upsert by IP doc ID |
+| **Neon (Postgres)** | Serverless Postgres with HTTP API — simple `INSERT … ON CONFLICT DO UPDATE` upsert by IP |
 | **In-memory (Map)** | Only suitable for single-instance, non-production use |
 
 **Removing rate limiting entirely:**

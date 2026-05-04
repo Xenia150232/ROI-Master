@@ -1006,7 +1006,7 @@ function renderCompareStats(selected){
 
 function triggerCompareAI(){
   if(typeof window.openChatWithPrompt!=='function')return;
-  const names=selectedNames.slice(0,10);
+  const names=selectedNames.slice();
   if(!names.length)return;
   const seed='$'+(Math.round(1000*(window.seedMultiplier||1))).toLocaleString();
 
@@ -1018,7 +1018,7 @@ function triggerCompareAI(){
   const displayText=`Compare ${names.length} selected assets (${seed} seed)`;
 
   // Detailed prompt — names listed so AI knows exactly what to compare
-  const aiPrompt=`You have been given the full data for these ${names.length} specifically selected assets in the RELEVANT ASSETS section: ${names.join(', ')}. Compare ONLY these assets against each other across all available time horizons (1Y, 5Y, 10Y, 15Y, 20Y) based on a ${seed} seed investment. For each time horizon state which asset performed best and worst with the exact values. Then give an overall ranking from #1 to #${names.length} with a brief reason for each position. Do NOT reference any assets outside this list.`;
+  const aiPrompt=`You have been given the full data for these ${names.length} specifically selected assets in the RELEVANT ASSETS section: ${names.join(', ')}. Compare ONLY these assets against each other across all available time horizons (1Y, 5Y, 10Y, 15Y, 20Y) based on a ${seed} seed investment. For each time horizon state which asset performed best and worst with the exact values. Then give an overall ranking from #1 to #${names.length} with a brief reason for each position. Finally, identify any hidden gems — assets that may be overlooked but offer strong risk-adjusted returns or consistent compounding — and flag any surprises where a well-known name underperforms expectations. Do NOT reference any assets outside this list.`;
 
   window.openChatWithPrompt(displayText, aiPrompt, pinnedAssets);
 }

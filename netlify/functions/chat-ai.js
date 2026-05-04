@@ -178,7 +178,7 @@ RESPONSE RULES — follow strictly:
    - "analyse this chart/metric" questions → extract the top 5-10 data points and list them
    - Any question where numbers appear in your answer → distil the key ranked figures into this list
 
-   NEVER skip this section. If you discussed any numbers, always end with "CHART DATA:" followed by the numbered list.
+   NEVER skip this section. If you discussed any numbers, always end with "CHART DATA:" followed by the numbered list.`;
 
   if (!assetContext) return base;
 

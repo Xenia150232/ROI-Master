@@ -64,10 +64,15 @@
         <span class="data-menu-arrow">▾</span>
       </button>
       <div class="data-menu-dropdown" id="dataMenuDropdown">
-        <button class="data-menu-item" onclick="document.getElementById('csvFileInput').click();closeDataMenu()">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>
-          Load Data
-        </button>
+        <div style="display:flex;align-items:center;gap:2px;padding:0 6px 0 0">
+          <button class="data-menu-item" style="flex:1" onclick="document.getElementById('csvFileInput').click();closeDataMenu()">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>
+            Load Data
+          </button>
+          <button class="csv-info-info-btn" onclick="openCsvInfoSheet();closeDataMenu()" title="CSV format info">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          </button>
+        </div>
         <button class="data-menu-item" onclick="exportCSV();closeDataMenu()">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="8 17 12 21 16 17"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.88 18.09A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.29"/></svg>
           Export CSV
@@ -332,6 +337,38 @@
 </footer>
 
 <!-- About Modal -->
+<!-- CSV Info Bottom Sheet (mobile) -->
+<div class="csv-info-overlay" id="csvInfoOverlay" style="display:none" onclick="if(event.target===this)closeCsvInfoSheet()">
+  <div class="csv-info-sheet">
+    <div class="csv-info-sheet-handle"></div>
+    <div class="csv-info-sheet-title">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      CSV Format Guide
+    </div>
+    <div class="csv-info-sheet-sub">Column order — row 1 must be a header row</div>
+    <div class="csv-info-col-list">
+      <div class="csv-info-col-row"><span class="csv-info-col-num">1</span><span class="csv-info-col-label">Asset / Company name</span></div>
+      <div class="csv-info-col-row"><span class="csv-info-col-num">2</span><span class="csv-info-col-label">Category</span></div>
+      <div class="csv-info-col-row"><span class="csv-info-col-num">3–4</span><span class="csv-info-col-label">1-Year Value &amp; Growth (x)</span></div>
+      <div class="csv-info-col-row"><span class="csv-info-col-num">5–6</span><span class="csv-info-col-label">5-Year Value &amp; Growth (x)</span></div>
+      <div class="csv-info-col-row"><span class="csv-info-col-num">7–8</span><span class="csv-info-col-label">10-Year Value &amp; Growth (x)</span></div>
+      <div class="csv-info-col-row"><span class="csv-info-col-num">9–10</span><span class="csv-info-col-label">15-Year Value &amp; Growth (x)</span></div>
+      <div class="csv-info-col-row"><span class="csv-info-col-num">11–12</span><span class="csv-info-col-label">20-Year Value &amp; Growth (x)</span></div>
+    </div>
+    <div class="csv-info-note">All values should be based on a $1,000 seed investment.</div>
+    <div class="csv-info-actions">
+      <button class="csv-info-dl-btn" onclick="downloadSampleCSV(event);closeCsvInfoSheet()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="8 17 12 21 16 17"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.88 18.09A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.29"/></svg>
+        Download Sample
+      </button>
+      <button class="csv-info-load-btn" onclick="document.getElementById('csvFileInput').click();closeCsvInfoSheet()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>
+        Load File
+      </button>
+    </div>
+  </div>
+</div>
+
 <div class="about-overlay" id="aboutOverlay" role="dialog" aria-modal="true" aria-label="About ROI Master" style="display:none">
   <div class="about-modal">
     <button class="about-close" onclick="closeAboutModal()" aria-label="Close about">

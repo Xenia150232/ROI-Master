@@ -1646,6 +1646,18 @@ function closeDataMenu(){
   document.getElementById('dataMenuBtn')?.classList.remove('open');
   document.getElementById('dataMenuDropdown')?.classList.remove('open');
 }
+function openCsvInfoSheet(){
+  const el=document.getElementById('csvInfoOverlay');
+  if(!el) return;
+  el.style.display='flex';
+  requestAnimationFrame(()=>el.classList.add('visible'));
+}
+function closeCsvInfoSheet(){
+  const el=document.getElementById('csvInfoOverlay');
+  if(!el) return;
+  el.classList.remove('visible');
+  el.addEventListener('transitionend',()=>{el.style.display='none';},{once:true});
+}
 document.addEventListener('click',function(e){
   const wrap=document.getElementById('dataMenuWrap');
   if(wrap && !wrap.contains(e.target)) closeDataMenu();

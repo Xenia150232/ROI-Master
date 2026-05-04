@@ -357,7 +357,7 @@
     pushHistory('user', text);
     textarea.value = '';
     autoGrow.call(textarea);
-    showTyping(true);
+    showTyping(true, aiAvailable);
     setSendDisabled(true);
 
     let answer = null;
@@ -375,8 +375,10 @@
     showTyping(false);
     setSendDisabled(false);
     addBotMsg(answer);
-    pushHistory('assistant', answer);
-    showFollowUpPills(generateFollowUps(text, answer));
+    // pushHistory always takes a plain string
+    const replyText = (answer && typeof answer === 'object') ? answer.reply : answer;
+    pushHistory('assistant', replyText);
+    showFollowUpPills(generateFollowUps(text, replyText));
     resetInactivity();
   }
 
@@ -426,7 +428,10 @@
         updateAIIndicator();
         return null;
       }
-      return sanitiseAIReply(data.reply);
+      const reply = sanitiseAIReply(data.reply);
+      const reasoning = typeof data.reasoning === 'string' ? data.reasoning.trim() : '';
+      // Return as object so callers can access reasoning separately
+      return reply ? { reply, reasoning } : null;
     } catch {
       return null;
     }
@@ -741,15 +746,16 @@
         lastUserQuestion = text;
         addUserMsg(text);
         pushHistory('user', text);
-        showTyping(true);
+        showTyping(true, aiAvailable);
         setTimeout(async () => {
           showTyping(false);
           let answer = null;
           if (aiAvailable) answer = await fetchAIAnswer(text, chatHistory.slice(0, -1));
           if (!answer) answer = answerFreeText(text);
           addBotMsg(answer);
-          pushHistory('assistant', answer);
-          showFollowUpPills(generateFollowUps(text, answer));
+          const replyStr = (answer && typeof answer === 'object') ? answer.reply : answer;
+          pushHistory('assistant', replyStr);
+          showFollowUpPills(generateFollowUps(text, replyStr));
           resetInactivity();
         }, 500 + Math.random() * 300);
       });
@@ -1311,9 +1317,33 @@
     return `Based on a $${seed} seed investment ${horizonStr}`;
   }
 
-  function addBotMsg(text) {
+  function addBotMsg(input) {
+    // Accept either a plain string or {reply, reasoning} object from fetchAIAnswer
+    const text     = (input && typeof input === 'object') ? (input.reply || '') : (input || '');
+    const reasoning = (input && typeof input === 'object' && input.reasoning) ? input.reasoning : '';
+
     const msg = el('div', 'chat-msg bot', body);
-    msg.innerHTML = formatBotText(text);
+
+    // Render collapsible reasoning block if thinking content was returned
+    if (reasoning) {
+      const thinkWrap = el('div', 'chat-think-wrap', msg);
+      const thinkHeader = el('button', 'chat-think-header', thinkWrap);
+      thinkHeader.setAttribute('aria-expanded', 'false');
+      thinkHeader.innerHTML = `<svg class="chat-think-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg><span>View reasoning</span>`;
+      const thinkBody = el('div', 'chat-think-body', thinkWrap);
+      // Show a trimmed, readable version of the raw reasoning chain
+      const trimmed = reasoning.length > 800 ? reasoning.slice(0, 800) + '…' : reasoning;
+      thinkBody.textContent = trimmed;
+      thinkHeader.addEventListener('click', () => {
+        const open = thinkHeader.getAttribute('aria-expanded') === 'true';
+        thinkHeader.setAttribute('aria-expanded', String(!open));
+        thinkBody.classList.toggle('open', !open);
+        thinkHeader.querySelector('span').textContent = open ? 'View reasoning' : 'Hide reasoning';
+      });
+    }
+
+    const textEl = el('div', 'chat-msg-text', msg);
+    textEl.innerHTML = formatBotText(text);
 
     // Attempt to draw an inline chart
     const chartData = extractChartData(text);
@@ -1336,10 +1366,22 @@
     msg.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
-  function showTyping(show) {
+  function showTyping(show, isAI) {
     if (show) {
-      typingEl = el('div', 'chat-typing', body);
-      typingEl.innerHTML = '<span></span><span></span><span></span>';
+      if (isAI) {
+        // AI thinking mode — pulsing brain indicator
+        typingEl = el('div', 'chat-thinking', body);
+        typingEl.innerHTML = `
+          <div class="chat-thinking-icon">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><circle cx="12" cy="12" r="10"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          </div>
+          <div class="chat-thinking-text">
+            <span class="chat-thinking-label">Thinking</span><span class="chat-thinking-dots"><span>.</span><span>.</span><span>.</span></span>
+          </div>`;
+      } else {
+        typingEl = el('div', 'chat-typing', body);
+        typingEl.innerHTML = '<span></span><span></span><span></span>';
+      }
       body.scrollTop = body.scrollHeight;
     } else if (typingEl) {
       typingEl.remove();
@@ -1370,15 +1412,16 @@
       lastUserQuestion = promptText;
       addUserMsg(promptText);
       pushHistory('user', promptText);
-      showTyping(true);
+      showTyping(true, aiAvailable);
       setTimeout(async () => {
         showTyping(false);
         let answer = null;
         if (aiAvailable) answer = await fetchAIAnswer(promptText, chatHistory.slice(0, -1));
         if (!answer) answer = answerFreeText(promptText);
         addBotMsg(answer);
-        pushHistory('assistant', answer);
-        showFollowUpPills(generateFollowUps(promptText, answer));
+        const replyStr = (answer && typeof answer === 'object') ? answer.reply : answer;
+        pushHistory('assistant', replyStr);
+        showFollowUpPills(generateFollowUps(promptText, replyStr));
         resetInactivity();
       }, 600 + Math.random() * 300);
     }, 200);

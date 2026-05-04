@@ -14,6 +14,7 @@
 const LLM_API_URL = process.env.LLM_API_URL || 'https://api.deepseek.com/v1/chat/completions';
 const MODEL = process.env.LLM_MODEL || 'deepseek-chat';
 const MAX_TOKENS = 700;
+const THINKING_TOKENS = 1024; // budget_tokens for the reasoning chain
 
 exports.handler = async function (event) {
   const headers = {
@@ -93,6 +94,9 @@ exports.handler = async function (event) {
       body: JSON.stringify({
         model: MODEL,
         max_tokens: MAX_TOKENS,
+        // Enable DeepSeek thinking mode — reasoning_content returned alongside content
+        thinking: { type: 'enabled', budget_tokens: THINKING_TOKENS },
+        // Note: temperature/top_p must be omitted in thinking mode
         messages: [
           { role: 'system', content: systemPrompt },
           ...historyMessages,
@@ -112,11 +116,13 @@ exports.handler = async function (event) {
     }
 
     const data = await response.json();
-    const reply = data.choices?.[0]?.message?.content || '';
+    const message_out = data.choices?.[0]?.message || {};
+    const reply = message_out.content || '';
+    const reasoning = message_out.reasoning_content || '';
     return {
       statusCode: 200,
       headers,
-      body: JSON.stringify({ ai_available: true, reply }),
+      body: JSON.stringify({ ai_available: true, reply, reasoning }),
     };
   } catch (err) {
     console.error('Fetch error:', err);

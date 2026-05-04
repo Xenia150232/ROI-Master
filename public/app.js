@@ -929,7 +929,18 @@ function renderCompareStats(selected){
   });
 
   let html=`<div class="compare-stats">
-    <div class="cs-header">
+    <div class="cs-ai-prompt">
+      <div class="cs-ai-prompt-text">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;opacity:.8"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        <span>Want AI to analyse these ${selected.length} assets against each other?</span>
+      </div>
+      <button class="cs-ai-prompt-btn" onclick="triggerCompareAI()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        Yes, analyse
+      </button>
+    </div>
+
+    <div class="cs-header" style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border)">
       <span class="cs-title">Group Summary</span>
       <span class="cs-sub">${selected.length} assets selected</span>
     </div>
@@ -943,17 +954,6 @@ function renderCompareStats(selected){
           <div class="cs-group-med" title="Median">${fv(g.med)}</div>
           <div class="cs-group-label">median</div>
         </div>`).join('')}
-    </div>
-
-    <div class="cs-ai-prompt">
-      <div class="cs-ai-prompt-text">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;opacity:.8"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-        <span>Want AI to analyse these ${selected.length} assets against each other?</span>
-      </div>
-      <button class="cs-ai-prompt-btn" onclick="triggerCompareAI()">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-        Yes, analyse
-      </button>
     </div>
 
     <div class="cs-header" style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border)">

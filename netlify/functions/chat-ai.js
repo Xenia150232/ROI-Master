@@ -6,16 +6,48 @@
   If the variable is not set, returns { ai_available: false } so
   the frontend can fall back to the local regex engine.
 
+  IP Rate Limiting via Netlify Blobs:
+  Each IP address is limited to DAILY_LIMIT AI calls per UTC day.
+  The limit resets automatically at midnight UTC each day.
+
   To swap the AI provider, update LLM_API_URL and MODEL below.
   Any provider that implements the OpenAI /v1/chat/completions
   format will work (OpenAI, Mistral, Groq, Together AI, etc.).
 */
+
+const { getStore } = require('@netlify/blobs');
 
 const LLM_API_URL = process.env.LLM_API_URL || 'https://api.deepseek.com/v1/chat/completions';
 const MODEL = process.env.LLM_MODEL || 'deepseek-v4-flash';
 const MAX_TOKENS = 1600;
 // DeepSeek V4 uses reasoning_effort ("none"|"high"|"max") — NOT the Claude-style thinking block
 const REASONING_EFFORT = 'high';
+
+const DAILY_LIMIT = 30;
+
+// Returns today's UTC date string e.g. "2026-05-04"
+function utcDateKey() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+// Returns { count, date } for a given IP from Netlify Blobs, or null on error.
+async function getRateRecord(store, ip) {
+  try {
+    const raw = await store.get(ip, { type: 'text' });
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
+async function setRateRecord(store, ip, record) {
+  try {
+    await store.set(ip, JSON.stringify(record));
+  } catch (e) {
+    console.warn('Blob write error:', e);
+  }
+}
 
 exports.handler = async function (event) {
   const headers = {
@@ -52,6 +84,82 @@ exports.handler = async function (event) {
   const { message, assetContext, conversationHistory } = payload;
   if (!message) {
     return { statusCode: 400, headers, body: JSON.stringify({ error: 'message is required' }) };
+  }
+
+  // ── Ping check (probe from frontend — don't count against rate limit) ──────
+  // Returns ai_available status and remaining calls without consuming a call.
+  const isPing = message === '__ping__';
+  if (isPing) {
+    // Still fetch current count so we can return remaining_calls accurately
+    let remaining = DAILY_LIMIT;
+    const pingIp = (
+      event.headers['x-nf-client-connection-ip'] ||
+      event.headers['x-forwarded-for'] ||
+      event.headers['client-ip'] ||
+      'unknown'
+    ).split(',')[0].trim();
+    try {
+      const store = getStore({ name: 'chat-rate-limits', consistency: 'strong' });
+      const today = utcDateKey();
+      const record = await getRateRecord(store, pingIp);
+      if (record && record.date === today) {
+        remaining = Math.max(0, DAILY_LIMIT - (record.count || 0));
+      }
+    } catch { /* non-critical */ }
+    return {
+      statusCode: 200,
+      headers,
+      body: JSON.stringify({ ai_available: true, remaining_calls: remaining }),
+    };
+  }
+
+  // ── IP Rate Limiting ──────────────────────────────────────────────────────
+  const clientIp = (
+    event.headers['x-nf-client-connection-ip'] ||
+    event.headers['x-forwarded-for'] ||
+    event.headers['client-ip'] ||
+    'unknown'
+  ).split(',')[0].trim();
+
+  let remainingCalls = DAILY_LIMIT;
+  let rateLimitOk = true;
+
+  if (!isPing && clientIp !== 'unknown') {
+    try {
+      const store = getStore({ name: 'chat-rate-limits', consistency: 'strong' });
+      const today = utcDateKey();
+      const record = await getRateRecord(store, clientIp);
+
+      let count = 0;
+      if (record && record.date === today) {
+        count = record.count || 0;
+      }
+
+      remainingCalls = Math.max(0, DAILY_LIMIT - count);
+
+      if (count >= DAILY_LIMIT) {
+        rateLimitOk = false;
+      } else {
+        await setRateRecord(store, clientIp, { date: today, count: count + 1 });
+        remainingCalls = Math.max(0, DAILY_LIMIT - (count + 1));
+      }
+    } catch (e) {
+      // Blob store unavailable — allow the request through rather than blocking users
+      console.warn('Rate limit store error:', e);
+    }
+  }
+
+  if (!rateLimitOk) {
+    return {
+      statusCode: 200,
+      headers,
+      body: JSON.stringify({
+        ai_available: true,
+        rate_limited: true,
+        remaining_calls: 0,
+        reply: null,
+      }),
+    };
   }
 
   // ── Guardrail: reject requests that try to make the AI alter data or escape its role ──
@@ -125,7 +233,7 @@ exports.handler = async function (event) {
     return {
       statusCode: 200,
       headers,
-      body: JSON.stringify({ ai_available: true, reply, reasoning }),
+      body: JSON.stringify({ ai_available: true, reply, reasoning, remaining_calls: remainingCalls }),
     };
   } catch (err) {
     console.error('Fetch error:', err);

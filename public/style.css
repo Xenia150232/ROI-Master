@@ -805,6 +805,39 @@ input[type=checkbox]{accent-color:var(--primary);width:15px;height:15px;cursor:p
 .chat-chart-canvas{display:block;border-radius:6px;max-width:100%}
 .chat-chart-note{font-size:10.5px;color:var(--muted);margin-top:6px;padding-top:5px;border-top:1px solid var(--border);font-style:italic}
 
+/* ── Daily call counter ──────────────────────────────────────── */
+.chat-call-counter{
+  font-size:10px;font-weight:600;letter-spacing:.02em;
+  padding:2px 7px;border-radius:20px;
+  background:rgba(5,150,105,.1);color:#059669;
+  white-space:nowrap;flex-shrink:0;
+  transition:background 300ms,color 300ms;
+}
+.chat-call-counter.counter-low{background:rgba(217,119,6,.12);color:#d97706}
+.chat-call-counter.counter-empty{background:rgba(220,38,38,.1);color:#dc2626}
+[data-theme="dark"] .chat-call-counter{background:rgba(5,150,105,.15);color:#34d399}
+[data-theme="dark"] .chat-call-counter.counter-low{background:rgba(217,119,6,.18);color:#fbbf24}
+[data-theme="dark"] .chat-call-counter.counter-empty{background:rgba(220,38,38,.15);color:#f87171}
+
+/* ── Rate limit message ──────────────────────────────────────── */
+.chat-msg-rate-limit{
+  display:flex !important;align-items:flex-start;gap:10px;
+  background:rgba(220,38,38,.06) !important;
+  border:1px solid rgba(220,38,38,.18) !important;
+  padding:12px 14px !important;
+}
+[data-theme="dark"] .chat-msg-rate-limit{
+  background:rgba(220,38,38,.1) !important;
+  border-color:rgba(248,113,113,.2) !important;
+}
+.chat-rl-icon{color:#dc2626;flex-shrink:0;margin-top:1px;display:flex;align-items:center}
+[data-theme="dark"] .chat-rl-icon{color:#f87171}
+.chat-rl-text{font-size:13px;line-height:1.55;color:var(--text)}
+.chat-rl-text strong{color:#dc2626;display:block;margin-bottom:3px}
+[data-theme="dark"] .chat-rl-text strong{color:#f87171}
+.chat-rl-link{color:var(--primary);text-decoration:underline;cursor:pointer;transition:color 150ms}
+.chat-rl-link:hover{opacity:.8}
+
 /* Free-type input row */
 .chat-input-row{
   flex-shrink:0;display:none;

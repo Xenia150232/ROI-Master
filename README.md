@@ -90,6 +90,7 @@ The built-in chat widget operates in two modes:
 - **Persistent history** — the full conversation is saved to localStorage and restored on return, with charts replayed from stored data
 - **Visualisation awareness** — the chatbot knows the names and purpose of all 7 dashboard charts and describes what each shows using live dataset figures
 - **Guardrails** — three layers of protection: client-side input blocking, server-side pattern matching, and a hardened system prompt that enforces read-only behaviour and resists prompt injection
+- **IP rate limiting** — each unique IP address is limited to 30 AI calls per UTC day, tracked server-side via Netlify Blobs. This cannot be bypassed by clearing browser storage. The chat counter shows remaining messages; users who hit the limit see a message directing them to the site owner
 
 ### Enabling AI on your own Netlify deployment
 
@@ -112,7 +113,9 @@ If you don't want to use Netlify, the `netlify/functions/chat-ai.js` serverless 
 | **Railway / Render / Fly.io** | Deploy as a small Express or Hono server. Point `AI_ENDPOINT` in `public/chat.js` to your deployed URL. |
 | **Self-hosted VPS** | Run a minimal Node.js Express server on any VPS (DigitalOcean, Linode, Hetzner). Set `AI_Chat_LLM` as a system environment variable. |
 
-The only requirement is that the endpoint accepts `POST { message, assetContext, conversationHistory }` and returns `{ reply, ai_available }`.
+The only requirement is that the endpoint accepts `POST { message, assetContext, conversationHistory }` and returns `{ reply, ai_available, remaining_calls }`.
+
+> **Note:** IP rate limiting uses `@netlify/blobs`, which is a Netlify-specific feature. If you port to another platform, replace the blob store calls with your own key-value store (Redis, Upstash, DynamoDB, etc.) or remove the rate limiting if not needed.
 
 ### Swapping the LLM provider
 

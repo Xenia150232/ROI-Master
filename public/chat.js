@@ -10,6 +10,7 @@
   const AI_ENDPOINT = '/.netlify/functions/chat-ai';
   const HISTORY_KEY = 'roi_chat_history';
   const MAX_HISTORY = 20; // max messages to store and send
+  const DAILY_LIMIT = 30;
 
   // ── Chat history (persisted to localStorage) ─────────────────
   // Each entry: { role: 'user'|'assistant', content: string }
@@ -135,7 +136,7 @@
   }
 
   // ── DOM refs ─────────────────────────────────────────────────
-  let fab, win, body, pillsSection, inputRow, textarea, sendBtn, aiIndicator, aiTooltip;
+  let fab, win, body, pillsSection, inputRow, textarea, sendBtn, aiIndicator, aiTooltip, callCounterEl;
   let isOpen = false;
   let lastUserQuestion = '';
 
@@ -143,6 +144,9 @@
   // null = not yet probed, true = available, false = unavailable
   let aiAvailable = null;
   let aiProbeInFlight = false;
+
+  // ── Remaining calls state (populated from API responses) ──
+  let remainingCalls = null; // null = not yet known
 
   // ── Inactivity re-engagement ─────────────────────────────────
   // Fires whether or not the chat is open — auto-opens it with the message.
@@ -184,6 +188,10 @@
       });
       const data = await res.json();
       aiAvailable = data.ai_available !== false;
+      if (typeof data.remaining_calls === 'number') {
+        remainingCalls = data.remaining_calls;
+        updateCallCounter();
+      }
     } catch {
       aiAvailable = false;
     } finally {
@@ -204,6 +212,7 @@
       aiIndicator.classList.remove('ai-on');
     }
     updateBadgeTooltip();
+    updateCallCounter();
   }
 
   function updateBadgeTooltip() {
@@ -213,6 +222,19 @@
     } else {
       aiTooltip.innerHTML = `This chat is smart but not connected to a proper AI LLM. Ask the site owner to connect. Instructions in the GitHub may be <a href="https://www.qaunain.com" target="_blank" rel="noopener">Qaunain Meghjee</a>`;
     }
+  }
+
+  function updateCallCounter() {
+    if (!callCounterEl) return;
+    if (!aiAvailable || remainingCalls === null) {
+      callCounterEl.style.display = 'none';
+      return;
+    }
+    callCounterEl.style.display = '';
+    const pct = remainingCalls / DAILY_LIMIT;
+    callCounterEl.className = 'chat-call-counter' +
+      (pct <= 0 ? ' counter-empty' : pct <= 0.3 ? ' counter-low' : '');
+    callCounterEl.textContent = `${remainingCalls}/${DAILY_LIMIT} AI messages today`;
   }
 
   function buildDOM() {
@@ -250,6 +272,9 @@
     aiIndicator.textContent = '...';
     aiTooltip = el('div', 'chat-badge-tooltip', badgeWrap);
     aiTooltip.innerHTML = 'Checking AI availability…';
+
+    callCounterEl = el('div', 'chat-call-counter', header);
+    callCounterEl.style.display = 'none';
 
     const clearBtn = el('button', 'chat-header-clear', header);
     clearBtn.setAttribute('aria-label', 'Clear conversation');
@@ -418,12 +443,19 @@
     if (aiAvailable !== false) {
       answer = await fetchAIAnswer(q.label, chatHistory.slice(0, -1));
     }
+
+    showTyping(false);
+    setSendDisabled(false);
+
+    if (isRateLimited(answer)) {
+      addRateLimitMsg();
+      return;
+    }
+
     if (!answer) {
       answer = answerQuestion(q.key);
     }
 
-    showTyping(false);
-    setSendDisabled(false);
     addBotMsg(answer);
     const replyStr = (answer && typeof answer === 'object') ? answer.reply : answer;
     pushHistory('assistant', replyStr);
@@ -472,14 +504,20 @@
       answer = await fetchAIAnswer(text, chatHistory.slice(0, -1)); // pass history excluding the just-added user msg
     }
 
+    showTyping(false);
+    setSendDisabled(false);
+
+    if (isRateLimited(answer)) {
+      addRateLimitMsg();
+      return;
+    }
+
     // Fall back if AI is unavailable or errored
     if (!answer) {
       await simulatedDelay(700 + Math.random() * 500);
       answer = answerFreeText(text);
     }
 
-    showTyping(false);
-    setSendDisabled(false);
     addBotMsg(answer);
     // pushHistory always takes a plain string
     const replyText = (answer && typeof answer === 'object') ? answer.reply : answer;
@@ -542,6 +580,17 @@
       const data = await res.json();
 
       if (data.error) console.warn('AI error:', data.error);
+
+      // Update remaining call counter from server response
+      if (typeof data.remaining_calls === 'number') {
+        remainingCalls = data.remaining_calls;
+        updateCallCounter();
+      }
+
+      // IP rate limit exceeded — surface a specific message, don't fall back to local engine
+      if (data.rate_limited) {
+        return { reply: null, rateLimited: true };
+      }
 
       if (!data.ai_available) {
         aiAvailable = false;
@@ -659,6 +708,15 @@
       topByReturn,
       datasetSummary: { avg1yr: avg(1), avg5yr: avg(5), avg10yr: avg(10) },
     };
+  }
+
+  // ── Rate limit message ────────────────────────────────────────
+  function getRateLimitMsg() {
+    return `Your IP address has exceeded the AI Advanced messages for today. <a href="#about" class="chat-rl-link" onclick="document.getElementById('about-modal')&&document.getElementById('about-modal').classList.add('open')">Contact the site owner here</a> to get access restored.`;
+  }
+
+  function isRateLimited(answer) {
+    return answer && typeof answer === 'object' && answer.rateLimited === true;
   }
 
   // ── Answer engine (local regex / smart fallback) ─────────────
@@ -897,6 +955,10 @@
           showTyping(false);
           let answer = null;
           if (aiAvailable !== false) answer = await fetchAIAnswer(text, chatHistory.slice(0, -1));
+          if (isRateLimited(answer)) {
+            addRateLimitMsg();
+            return;
+          }
           if (!answer) answer = answerFreeText(text);
           addBotMsg(answer);
           const replyStr = (answer && typeof answer === 'object') ? answer.reply : answer;
@@ -1507,6 +1569,41 @@
     return `Based on a $${seed} seed investment ${horizonStr}`;
   }
 
+  function addRateLimitMsg() {
+    const msg = el('div', 'chat-msg bot chat-msg-rate-limit', body);
+    msg.innerHTML = `
+      <div class="chat-rl-icon">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      </div>
+      <div class="chat-rl-text">
+        <strong>Daily AI limit reached</strong><br>
+        Your IP address has exceeded the AI Advanced messages for today.
+        <a href="#about" class="chat-rl-link">Contact the site owner here</a>
+        to get access restored.
+      </div>`;
+    const rlLink = msg.querySelector('.chat-rl-link');
+    if (rlLink) {
+      rlLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        closeChat();
+        // Try to open the about modal if it exists on the page
+        const aboutModal = document.getElementById('about-modal') || document.querySelector('[data-modal="about"]');
+        if (aboutModal) {
+          aboutModal.classList.add('open');
+          aboutModal.setAttribute('aria-hidden', 'false');
+        } else {
+          // Fallback: scroll to about section or navigate
+          const aboutSection = document.getElementById('about') || document.querySelector('[data-section="about"]');
+          if (aboutSection) aboutSection.scrollIntoView({ behavior: 'smooth' });
+        }
+      });
+    }
+    msg.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    // Update counter to show 0
+    remainingCalls = 0;
+    updateCallCounter();
+  }
+
   function addBotMsg(input) {
     // Accept either a plain string or {reply, reasoning} object from fetchAIAnswer
     const rawText   = (input && typeof input === 'object') ? (input.reply || '') : (input || '');
@@ -1620,6 +1717,15 @@
     let answer = null;
     // Try AI whenever it's not explicitly unavailable (null = not-yet-probed, still worth trying)
     if (aiAvailable !== false) answer = await fetchAIAnswer(aiQuery, chatHistory.slice(0, -1), pinnedAssets || null);
+
+    showTyping(false);
+    setSendDisabled(false);
+
+    if (isRateLimited(answer)) {
+      addRateLimitMsg();
+      return;
+    }
+
     // If we have pinned assets (compare flow) and AI failed, run a deterministic local comparison
     // instead of falling through to answerFreeText (which would keyword-match and return wrong assets)
     if (!answer && pinnedAssets && pinnedAssets.length) {
@@ -1627,8 +1733,6 @@
     }
     if (!answer) answer = answerFreeText(aiQuery);
 
-    showTyping(false);
-    setSendDisabled(false);
     addBotMsg(answer);
     const replyStr = (answer && typeof answer === 'object') ? answer.reply : answer;
     pushHistory('assistant', replyStr);

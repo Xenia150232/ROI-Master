@@ -822,31 +822,28 @@ input[type=checkbox]{accent-color:var(--primary);width:15px;height:15px;cursor:p
 [data-theme="dark"] .chat-call-counter-bar.counter-empty{background:rgba(220,38,38,.1);color:#f87171}
 
 /* ── Counter info icon + tooltip ─────────────────────────────── */
-/* The counter bar is the positioning parent */
+/* Bar is the positioning parent AND the hover root — so moving the mouse
+   from the icon up into the tooltip never breaks the hover chain */
 .chat-call-counter-bar{position:relative}
 .counter-info-wrap{
-  position:static;display:inline-flex;align-items:center;
+  display:inline-flex;align-items:center;
   margin-left:2px;cursor:default;
 }
 .counter-info-icon{opacity:.7;flex-shrink:0;transition:opacity 150ms}
-.counter-info-wrap:hover .counter-info-icon{opacity:1}
+.chat-call-counter-bar:hover .counter-info-icon{opacity:1}
 
-/* Tooltip sits above the bar. A transparent pseudo-bridge fills the gap so
-   moving the mouse from the icon into the tooltip doesn't lose hover. */
 .counter-info-tooltip{
-  position:absolute;
-  /* sits 0px above bar top — the visible box starts after the bridge padding */
-  bottom:100%;right:10px;left:auto;
-  padding-bottom:10px; /* invisible bridge over the bar gap */
+  /* Absolutely positioned inside the bar; padding-bottom bridges the small gap */
+  position:absolute;bottom:100%;right:10px;left:auto;
+  padding-bottom:8px;
   pointer-events:none;opacity:0;
-  transition:opacity 150ms;
+  transition:opacity 180ms;
   z-index:9999;
 }
-.counter-info-wrap:hover .counter-info-tooltip,
-.counter-info-tooltip:hover{
+/* Show when hovering anywhere on the bar — covers icon + tooltip travel zone */
+.chat-call-counter-bar:hover .counter-info-tooltip{
   opacity:1;pointer-events:auto;
 }
-/* The visible bubble is a pseudo-element so the padding bridge stays transparent */
 .counter-info-tooltip-inner{
   background:var(--surface,#fff);color:var(--text,#1a202c);
   border:1px solid var(--border,#e2e8f0);border-radius:8px;

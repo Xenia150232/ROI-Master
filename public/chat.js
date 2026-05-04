@@ -232,9 +232,11 @@
     }
     callCounterEl.style.display = '';
     const pct = remainingCalls / DAILY_LIMIT;
-    callCounterEl.className = 'chat-call-counter' +
-      (pct <= 0 ? ' counter-empty' : pct <= 0.3 ? ' counter-low' : '');
-    callCounterEl.textContent = `${remainingCalls}/${DAILY_LIMIT} AI messages today`;
+    const stateClass = pct <= 0 ? ' counter-empty' : pct <= 0.3 ? ' counter-low' : '';
+    callCounterEl.className = 'chat-call-counter-bar' + stateClass;
+    callCounterEl.innerHTML = `
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      <span>${remainingCalls} of ${DAILY_LIMIT} AI messages remaining today</span>`;
   }
 
   function buildDOM() {
@@ -273,9 +275,6 @@
     aiTooltip = el('div', 'chat-badge-tooltip', badgeWrap);
     aiTooltip.innerHTML = 'Checking AI availability…';
 
-    callCounterEl = el('div', 'chat-call-counter', header);
-    callCounterEl.style.display = 'none';
-
     const clearBtn = el('button', 'chat-header-clear', header);
     clearBtn.setAttribute('aria-label', 'Clear conversation');
     clearBtn.title = 'Clear conversation';
@@ -304,6 +303,10 @@
     closeBtn.setAttribute('aria-label', 'Close chat');
     closeBtn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
     closeBtn.addEventListener('click', closeChat);
+
+    // Call counter sub-row (shown below header when AI is active)
+    callCounterEl = el('div', 'chat-call-counter-bar', win);
+    callCounterEl.style.display = 'none';
 
     // Messages body
     body = el('div', 'chat-body', win);
@@ -1599,7 +1602,6 @@
       });
     }
     msg.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    // Update counter to show 0
     remainingCalls = 0;
     updateCallCounter();
   }

@@ -805,19 +805,21 @@ input[type=checkbox]{accent-color:var(--primary);width:15px;height:15px;cursor:p
 .chat-chart-canvas{display:block;border-radius:6px;max-width:100%}
 .chat-chart-note{font-size:10.5px;color:var(--muted);margin-top:6px;padding-top:5px;border-top:1px solid var(--border);font-style:italic}
 
-/* ── Daily call counter ──────────────────────────────────────── */
-.chat-call-counter{
-  font-size:10px;font-weight:600;letter-spacing:.02em;
-  padding:2px 7px;border-radius:20px;
-  background:rgba(5,150,105,.1);color:#059669;
-  white-space:nowrap;flex-shrink:0;
+/* ── Daily call counter bar (sits below header, full width) ──── */
+.chat-call-counter-bar{
+  display:flex;align-items:center;gap:5px;justify-content:center;
+  padding:5px 14px;flex-shrink:0;
+  border-bottom:1px solid var(--border);
+  background:rgba(5,150,105,.06);
+  font-size:11px;font-weight:600;color:#059669;
   transition:background 300ms,color 300ms;
 }
-.chat-call-counter.counter-low{background:rgba(217,119,6,.12);color:#d97706}
-.chat-call-counter.counter-empty{background:rgba(220,38,38,.1);color:#dc2626}
-[data-theme="dark"] .chat-call-counter{background:rgba(5,150,105,.15);color:#34d399}
-[data-theme="dark"] .chat-call-counter.counter-low{background:rgba(217,119,6,.18);color:#fbbf24}
-[data-theme="dark"] .chat-call-counter.counter-empty{background:rgba(220,38,38,.15);color:#f87171}
+.chat-call-counter-bar svg{flex-shrink:0;opacity:.85}
+.chat-call-counter-bar.counter-low{background:rgba(217,119,6,.07);color:#d97706}
+.chat-call-counter-bar.counter-empty{background:rgba(220,38,38,.06);color:#dc2626}
+[data-theme="dark"] .chat-call-counter-bar{background:rgba(5,150,105,.1);color:#34d399}
+[data-theme="dark"] .chat-call-counter-bar.counter-low{background:rgba(217,119,6,.12);color:#fbbf24}
+[data-theme="dark"] .chat-call-counter-bar.counter-empty{background:rgba(220,38,38,.1);color:#f87171}
 
 /* ── Rate limit message ──────────────────────────────────────── */
 .chat-msg-rate-limit{

@@ -1,0 +1,273 @@
+# ROI Master — Investment Dashboard
+
+A fully client-side investment analysis dashboard that lets you visualise, compare, and analyse the long-term ROI of any asset portfolio. No backend required — runs entirely in the browser from a single HTML file.
+
+![ROI Master Dashboard](public/Images/ROI_Master_-_001.png)
+![ROI Master Charts](public/Images/ROI_Master_-_002.png)
+
+**Live Demo:** <a href="https://roimaster.netlify.app/" target="_blank">https://roimaster.netlify.app/</a> — always reflects the latest `main` branch, deployed automatically via Netlify.
+
+**GitHub Repository:** <a href="https://github.com/QaunainM/ROI-Master" target="_blank">https://github.com/QaunainM/ROI-Master</a>
+
+---
+
+## Features
+
+- **300+ pre-loaded assets** across Stocks, ETFs & Funds, Commodities, and Real Estate — easily add your own datasets
+- **Adjustable seed value** — change the initial investment amount and all figures update instantly
+- **KPI Tiles** — scrolling carousel of at-a-glance performance stats including:
+  - Best 1Y, 5Y, 10Y, 15Y, and 20Y performer with name and return value
+  - 10x Club, 25x Club, and 50x Club — counts of assets that hit each multiplier threshold
+  - Dataset median return at each time horizon
+  - Outlier detection — highlights assets significantly above or below the mean
+  - Worst performer flags across each time horizon
+- **Data Visualisations** — 7 interactive charts built with Chart.js 4:
+  - **Best Returns (Bar Chart)** — top 10 assets by return value at any selected time horizon (1Y–20Y), with switchable range tabs
+  - **Returns by Asset Class (Bar Chart)** — median return per asset class at any time horizon, letting you compare Stocks vs ETFs vs Commodities vs Real Estate at a glance
+  - **Avg Return Heatmap** — colour-coded grid (green = strong ROI, red = underperformance) showing average return per asset class across all five time horizons simultaneously, with hover tooltips showing top-10 asset breakdowns per cell
+  - **Median Return by Horizon (Grouped Bar / Line)** — median value per asset class at each time horizon side by side, revealing how different classes compound differently over time
+  - **Category Breakdown (Donut Chart)** — asset count or average return by category (top 15), switchable by time horizon
+  - **Top Categories by ROI (Horizontal Bar)** — average return ranked by category tag at any selected horizon, showing which sub-categories (AI, EV, Payments, etc.) lead
+  - **ROI Growth Chart (Line Chart)** — interactive multi-asset comparison chart that appears when you select rows in the table; supports up to N assets simultaneously across 1Y–20Y horizons with a full-width expand mode
+- **Full-featured table** — sortable, searchable, paginated asset list with 1Y–20Y values and multipliers
+- **Filter & search** — filter by asset class, category tags, or free-text search across all 300+ assets
+- **Exclude rows** — temporarily remove assets from charts without deleting them
+- **CSV import** — upload your own CSV to replace the default dataset
+- **CSV export** — download the current filtered view as a CSV
+- **AI Chat Assistant — answers in words *and* draws its own charts live** — ask a question and the assistant responds in plain English, then automatically renders a real bar chart right inside the chat bubble whenever the answer contains ranked or comparable data. No button to press, no separate view — the chart appears as part of the reply, on the fly:
+  - **Live in-chat chart generation** — Canvas-rendered horizontal bar chart injected directly into the message bubble for any ranked list, top-N result, or multi-asset comparison the AI produces
+  - **Comparison charts** — side-by-side bars when the answer contrasts two groups (e.g. Asia vs Europe returns across time horizons)
+  - Auto-suggested follow-up questions — 6 contextual pills after every response, derived from the specific assets and topics in the answer
+  - Persistent chat history — conversation is saved to localStorage and restored on return visits, with full chart replay
+  - Full awareness of all 7 dashboard visualisations — ask "what does the scatter plot show?" and get a data-driven description
+  - Powered by any OpenAI-compatible LLM (Deepseek by default), with automatic fallback to a smart regex engine when no API key is configured
+  - Read-only guardrails — multiple layers prevent the chatbot from modifying data or being manipulated via prompt injection
+- **Dark mode** — toggle between light and dark themes
+- **Fully responsive** — works on desktop, tablet, and mobile
+- **About modal** — hover the logo to access an About page with creator info
+
+---
+
+## Getting Started
+
+### Option 1 — Open directly in a browser
+
+No build step required. Just open `index.html` in any modern browser:
+
+```
+open index.html
+```
+
+### Option 2 — Local dev server (hot-reload)
+
+```bash
+npm install
+npm run dev
+```
+
+Then visit `http://localhost:5173`.
+
+---
+
+## AI Chat Assistant
+
+The built-in chat widget operates in two modes:
+
+| Mode | When active | Behaviour |
+|------|-------------|-----------|
+| **AI mode** | `AI_Chat_LLM` environment variable is set | Sends questions to a serverless function which calls an LLM API and returns natural-language answers |
+| **Smart mode** | No API key configured | Uses an enhanced local regex engine — asset lookups, performance summaries, category rankings, and structured data answers |
+
+### Chat features
+
+- **Live in-chat charts** — the single most distinctive feature: whenever the AI's response contains a ranked list, a top-N comparison, or a side-by-side group breakdown, a Canvas-rendered horizontal bar chart is drawn automatically inside the message bubble — no button, no modal, no separate tab. The chart is generated from the text of the reply itself, on the fly, every time
+- **Comparison charts** — when the AI contrasts two groups (e.g. Asia vs Europe across three time horizons), the chart interleaves bars from both sides so the comparison is instantly visual
+- **Follow-up pills** — after every response, 6 contextual follow-up question suggestions appear as clickable pills, derived from the specific asset names, categories, and time horizons in the conversation — not generic suggestions
+- **Persistent history** — the full conversation (text and chart data) is saved to localStorage and restored when you return, so you never lose context between sessions
+- **Visualisation awareness** — the chatbot knows the names and purpose of all 7 dashboard charts and can describe what each shows
+- **Guardrails** — three layers of protection: client-side input blocking, server-side pattern matching, and a hardened system prompt that enforces read-only behaviour and resists prompt injection
+
+### Enabling AI on your own Netlify deployment
+
+1. Fork this repository and connect it to your own Netlify site
+2. In your Netlify project, go to **Site configuration → Environment variables**
+3. Add a new variable:
+   - **Key:** `AI_Chat_LLM`
+   - **Value:** your API key from any OpenAI-compatible LLM provider
+4. Redeploy the site — the chat badge will show **AI** instead of **Basic**
+
+### Alternatives to Netlify for hosting the AI function
+
+If you don't want to use Netlify, the `netlify/functions/chat-ai.js` serverless function can be ported to any Node.js-compatible serverless platform with minimal changes:
+
+| Platform | How to adapt |
+|----------|-------------|
+| **Vercel** | Move the file to `api/chat-ai.js` and export a default `async function handler(req, res)`. Add `AI_Chat_LLM` in the Vercel project's Environment Variables settings. |
+| **Cloudflare Workers** | Rewrite using the Workers fetch event pattern. Store the API key as a Worker secret via `wrangler secret put AI_Chat_LLM`. |
+| **AWS Lambda** | Wrap the function body in `exports.handler = async (event) => { ... }` and store the key in AWS Secrets Manager or as a Lambda environment variable. |
+| **Railway / Render / Fly.io** | Deploy as a small Express or Hono server. Point `AI_ENDPOINT` in `public/chat.js` to your deployed URL. |
+| **Self-hosted VPS** | Run a minimal Node.js Express server on any VPS (DigitalOcean, Linode, Hetzner). Set `AI_Chat_LLM` as a system environment variable. |
+
+The only requirement is that the endpoint accepts `POST { message, assetContext, conversationHistory }` and returns `{ reply, ai_available }`.
+
+### Swapping the LLM provider
+
+Open `netlify/functions/chat-ai.js` and update the two constants at the top of the file to point at your chosen provider's endpoint and model name:
+
+```js
+const LLM_API_URL = 'https://<your-provider>/v1/chat/completions';
+const MODEL = '<model-name>';
+```
+
+Any provider that implements the OpenAI `/v1/chat/completions` format will work — including OpenAI, Anthropic-compatible proxies, Mistral, Groq, Together AI, and others.
+
+---
+
+## Deploying to Netlify
+
+This project includes a `netlify.toml` that configures:
+- **Publish directory:** `.` (the repo root, where `index.html` lives)
+- **Functions directory:** `netlify/functions`
+- **Node version:** 18
+
+To deploy:
+1. Fork the repo and connect it to a new Netlify site
+2. Netlify will detect `netlify.toml` automatically — no manual settings required
+3. Optionally add the `AI_Chat_LLM` environment variable to enable AI chat
+
+Every push to `main` triggers an automatic redeploy.
+
+---
+
+## Using Your Own Data
+
+### Option 1 — CSV upload
+
+Click **Load Data** in the top toolbar to upload a CSV file. The CSV must follow this column structure:
+
+| Column | Description |
+|--------|-------------|
+| 1 | Asset / Company name |
+| 2 | Category (e.g. `Technology, Semiconductors`) |
+| 3 | 1Y Value (based on seed) |
+| 4 | 1Y Growth multiplier (x) |
+| 5 | 5Y Value |
+| 6 | 5Y Growth multiplier (x) |
+| 7 | 10Y Value |
+| 8 | 10Y Growth multiplier (x) |
+| 9 | 15Y Value |
+| 10 | 15Y Growth multiplier (x) |
+| 11 | 20Y Value |
+| 12 | 20Y Growth multiplier (x) |
+
+- Row 1 is the header row and is ignored
+- Values should be based on a **$1,000 seed investment** (the seed amount is adjustable in the UI)
+- Missing values (no data for that time horizon) should be left blank
+- Click the **Download sample CSV** link inside the Load Data tooltip to get a template
+
+To revert to the built-in dataset, click **Reset to default**.
+
+### Option 2 — Connect a live data API
+
+Instead of uploading a CSV, you can feed live or custom data by replacing the static dataset at runtime. Some hypothetical approaches:
+
+**Financial data providers**
+- Fetch from <a href="https://finance.yahoo.com/" target="_blank">Yahoo Finance</a> (unofficial API), <a href="https://www.alphavantage.co/" target="_blank">Alpha Vantage</a>, or <a href="https://polygon.io/" target="_blank">Polygon.io</a> inside a small serverless function. Map the returned OHLC / price history to the CSV column structure and call `loadDataFromArray(rows)` in `public/data.js`.
+
+**Your own database**
+- Expose a REST endpoint (e.g. from Supabase, Firebase, or a Postgres instance) that returns JSON in the same shape as the CSV rows. Fetch it on page load and pass it to `window.masterData` before `app.js` initialises.
+
+**Google Sheets**
+- Publish a Sheet as CSV (File → Share → Publish to web → CSV). Pass that URL to `Papa.parse(url, { download: true, ... })` and use the result as your dataset. This lets non-technical users maintain the data in a spreadsheet.
+
+**CMS or headless API**
+- If your asset data lives in Contentful, Airtable, or a similar CMS, fetch the entries via their REST/GraphQL API, transform them to match the expected column order, and inject them before page render.
+
+The key contract is: supply an array of rows where each row matches the 12-column CSV format (name, category, v1, g1, v5, g5, v10, g10, v15, g15, v20, g20).
+
+---
+
+## CSV Format Example
+
+```csv
+Asset Name,Category,1Yr Value,1Yr Growth (x),5Yr Value,5Yr Growth (x),10Yr Value,10Yr Growth (x),15Yr Value,15Yr Growth (x),20Yr Value,20Yr Growth (x)
+Apple (AAPL),Stocks,1380,1.38,2850,2.85,9200,9.20,28000,28.00,68000,68.00
+Vanguard Total Market ETF (VTI),ETFs & Funds,1240,1.24,1770,1.77,3150,3.15,5800,5.80,9200,9.20
+Gold ETF (GLD),Commodities,1080,1.08,1350,1.35,1820,1.82,2400,2.40,3200,3.20
+```
+
+---
+
+## Project Structure
+
+```
+├── index.html                          # Single-page app entry point
+├── about.html                          # About modal page (/about)
+├── netlify.toml                        # Netlify build + functions config
+├── netlify/
+│   └── functions/
+│       └── chat-ai.js                  # AI chat proxy (serverless function)
+├── public/
+│   ├── app.js                          # All application logic
+│   ├── chat.js                         # Chat widget (AI + smart fallback)
+│   ├── style.css                       # All styles
+│   └── data.js                         # Default dataset (300+ assets)
+├── Master_Investment_Table_303_Assets_-_V2.csv   # Source data reference
+├── package.json                        # Only dependency: Vite (for local dev)
+└── vite.config.ts                      # Minimal Vite config
+```
+
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| UI | Vanilla HTML + CSS (no framework) |
+| Logic | Vanilla JavaScript (ES2020) |
+| Charts | <a href="https://www.chartjs.org/" target="_blank">Chart.js 4</a> via CDN |
+| In-chat charts | Canvas API (no dependencies) |
+| Fonts | Inter (Google Fonts) |
+| AI Chat | OpenAI-compatible LLM API via Netlify Functions |
+| Dev server | <a href="https://vitejs.dev/" target="_blank">Vite</a> (optional) |
+| Hosting | <a href="https://netlify.com/" target="_blank">Netlify</a> |
+
+No React. No TypeScript. No build step required for end users.
+
+---
+
+## Forking & Contributing
+
+1. Fork this repository on GitHub
+2. Clone your fork: `git clone https://github.com/YOUR_USERNAME/ROI-Master.git`
+3. Open `index.html` directly **or** run `npm install && npm run dev`
+4. Make your changes in `public/app.js`, `public/style.css`, `public/chat.js`, or `index.html`
+5. To enable AI chat on your fork, add the `AI_Chat_LLM` environment variable in your Netlify site settings (see [AI Chat Assistant](#ai-chat-assistant) section above)
+6. Submit a pull request with a clear description of what you changed
+
+All logic lives in `public/` (vanilla JS). There is no compile step, so edits are immediately visible on page refresh.
+
+---
+
+## Creator
+
+**Qaunain Meghjee**
+
+![Qaunain Meghjee](public/Images/qaunain-meghjee.jpg)
+
+As someone who invests across multiple asset classes, I needed a clear way to visualise long-term growth and compare ROI statistics side by side — so I built ROI Master.
+
+15 years of experience launching products and features across AI, web, mobile, eCommerce, SaaS, API platforms, and IoT. Specialist in product management, technology, automation, and user engagement. Helping companies implement AI and ML since 2016.
+
+- **Website:** <a href="https://www.qaunain.com" target="_blank">www.qaunain.com</a>
+- **LinkedIn:** <a href="https://www.linkedin.com/in/qaunainm/" target="_blank">linkedin.com/in/qaunainm</a>
+
+---
+
+## License
+
+MIT — free to use, fork, and modify.
+
+---
+
+ROI Master — A tool that lets you see growth across investments and asset classes with modern data visualisations and AI chat analysis. Made by <a href="https://www.qaunain.com" target="_blank">Qaunain Meghjee</a>. <a href="https://github.com/QaunainM/ROI-Master" target="_blank">Clone this on GitHub</a>.

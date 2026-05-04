@@ -1,0 +1,1393 @@
+/* ============================================================
+   ROI Master — Chat Widget
+   AI-powered mode when AI_Chat_LLM env var is set on Netlify.
+   Falls back to smart local regex engine when AI is unavailable.
+   ============================================================ */
+
+(function () {
+  'use strict';
+
+  const AI_ENDPOINT = '/.netlify/functions/chat-ai';
+  const HISTORY_KEY = 'roi_chat_history';
+  const MAX_HISTORY = 20; // max messages to store and send
+
+  // ── Chat history (persisted to localStorage) ─────────────────
+  // Each entry: { role: 'user'|'assistant', content: string }
+  let chatHistory = [];
+
+  function loadHistory() {
+    try {
+      const stored = localStorage.getItem(HISTORY_KEY);
+      if (stored) chatHistory = JSON.parse(stored);
+    } catch { chatHistory = []; }
+  }
+
+  function saveHistory() {
+    try {
+      // Keep only the last MAX_HISTORY messages
+      if (chatHistory.length > MAX_HISTORY) chatHistory = chatHistory.slice(-MAX_HISTORY);
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(chatHistory));
+    } catch { /* storage full or unavailable */ }
+  }
+
+  function pushHistory(role, content) {
+    chatHistory.push({ role, content });
+    saveHistory();
+  }
+
+  function clearHistory() {
+    chatHistory = [];
+    try { localStorage.removeItem(HISTORY_KEY); } catch {}
+  }
+
+  // ── Quick question definitions ──────────────────────────────
+  const QUICK_QUESTIONS = [
+    { label: 'Best 10-year assets',  key: 'best10yr' },
+    { label: 'Highest ROI overall',  key: 'bestROI' },
+    { label: 'Top asset class',      key: 'topClass' },
+    { label: 'Worst performers',     key: 'worst' },
+    { label: 'Average returns',      key: 'avgReturns' },
+    { label: 'Most consistent',      key: 'consistent' },
+    { label: 'Other',                key: 'other' },
+  ];
+
+  // ── DOM refs ─────────────────────────────────────────────────
+  let fab, win, body, pillsSection, inputRow, textarea, sendBtn, aiIndicator, aiTooltip;
+  let isOpen = false;
+  let lastUserQuestion = '';
+
+  // ── AI availability state ─────────────────────────────────
+  // null = not yet probed, true = available, false = unavailable
+  let aiAvailable = null;
+  let aiProbeInFlight = false;
+
+  // ── Inactivity re-engagement ─────────────────────────────────
+  // Fires whether or not the chat is open — auto-opens it with the message.
+  const INACTIVITY_MS = 20000;
+  let inactivityTimer = null;
+  let autoMessageSent = false;
+
+  const REENGAGEMENT_PROMPTS = [
+    'Still curious? Here are some things I can help you explore:',
+    'Not sure where to start? Try one of these questions:',
+    'I can dig into the data for you — pick a topic:',
+  ];
+
+  // ── Init ─────────────────────────────────────────────────────
+  function init() {
+    loadHistory();
+    buildDOM();
+    attachEvents();
+    setTimeout(() => fab.classList.add('ready'), 800);
+    probeAI();
+    // Start inactivity timer immediately from page load (not just when chat opens)
+    inactivityTimer = setTimeout(onInactive, INACTIVITY_MS);
+    // Reset timer on any user interaction with the page
+    ['click','keydown','scroll','mousemove','touchstart'].forEach(evt => {
+      document.addEventListener(evt, () => { if (!autoMessageSent) resetInactivity(); }, { passive: true });
+    });
+  }
+
+  // ── Probe whether AI backend is reachable ─────────────────
+  async function probeAI() {
+    if (aiProbeInFlight) return;
+    aiProbeInFlight = true;
+    try {
+      const res = await fetch(AI_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: '__ping__', assetContext: null }),
+      });
+      const data = await res.json();
+      aiAvailable = data.ai_available !== false;
+    } catch {
+      aiAvailable = false;
+    } finally {
+      aiProbeInFlight = false;
+      updateAIIndicator();
+    }
+  }
+
+  function updateAIIndicator() {
+    if (!aiIndicator) return;
+    if (aiAvailable) {
+      aiIndicator.textContent = 'AI';
+      aiIndicator.classList.add('ai-on');
+      aiIndicator.classList.remove('ai-off');
+    } else {
+      aiIndicator.textContent = 'Basic';
+      aiIndicator.classList.add('ai-off');
+      aiIndicator.classList.remove('ai-on');
+    }
+    updateBadgeTooltip();
+  }
+
+  function updateBadgeTooltip() {
+    if (!aiTooltip) return;
+    if (aiAvailable) {
+      aiTooltip.innerHTML = `Advanced AI mode is active, you are speaking to a real AI LLM`;
+    } else {
+      aiTooltip.innerHTML = `This chat is smart but not connected to a proper AI LLM. Ask the site owner to connect. Instructions in the GitHub may be <a href="https://www.qaunain.com" target="_blank" rel="noopener">Qaunain Meghjee</a>`;
+    }
+  }
+
+  function buildDOM() {
+    // FAB
+    fab = el('button', 'chat-fab', document.body);
+    fab.setAttribute('aria-label', 'Open chat assistant');
+    fab.innerHTML = `
+      <svg class="icon-chat" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+      </svg>
+      <svg class="icon-close" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+      </svg>`;
+
+    // Window
+    win = el('div', 'chat-window', document.body);
+    win.setAttribute('role', 'dialog');
+    win.setAttribute('aria-label', 'ROI Assistant');
+
+    // Header
+    const header = el('div', 'chat-header', win);
+    header.innerHTML = `
+      <div class="chat-header-icon">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+        </svg>
+      </div>
+      <div class="chat-header-text">
+        <div class="chat-header-title">ROI Assistant</div>
+        <div class="chat-header-sub">Ask about assets, data &amp; returns</div>
+      </div>`;
+
+    const badgeWrap = el('div', 'chat-badge-wrap', header);
+    aiIndicator = el('span', 'chat-ai-badge ai-off', badgeWrap);
+    aiIndicator.textContent = '...';
+    aiTooltip = el('div', 'chat-badge-tooltip', badgeWrap);
+    aiTooltip.innerHTML = 'Checking AI availability…';
+
+    const closeBtn = el('button', 'chat-header-close', header);
+    closeBtn.setAttribute('aria-label', 'Close chat');
+    closeBtn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
+    closeBtn.addEventListener('click', closeChat);
+
+    // Messages body
+    body = el('div', 'chat-body', win);
+
+    // Pills section (quick questions)
+    pillsSection = el('div', 'chat-pills', win);
+    const pillsLabel = el('div', 'chat-pills-label', pillsSection);
+    pillsLabel.textContent = 'Quick questions';
+    const pillsRow = el('div', 'chat-pills-row', pillsSection);
+    QUICK_QUESTIONS.forEach(q => {
+      const pill = el('button', 'chat-pill' + (q.key === 'other' ? ' pill-other' : ''), pillsRow);
+      pill.textContent = q.label;
+      pill.addEventListener('click', () => handlePill(q));
+    });
+
+    // Free-type input row — always visible
+    inputRow = el('div', 'chat-input-row visible', win);
+    textarea = el('textarea', '', inputRow);
+    textarea.placeholder = 'Type your question…';
+    textarea.rows = 1;
+    textarea.addEventListener('keydown', e => {
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendFreeText(); }
+    });
+    textarea.addEventListener('input', autoGrow);
+
+    sendBtn = el('button', 'chat-send-btn', inputRow);
+    sendBtn.setAttribute('aria-label', 'Send');
+    sendBtn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>`;
+    sendBtn.addEventListener('click', sendFreeText);
+  }
+
+  function attachEvents() {
+    fab.addEventListener('click', toggleChat);
+    document.addEventListener('keydown', e => { if (e.key === 'Escape' && isOpen) closeChat(); });
+    document.addEventListener('click', e => {
+      // If target is no longer in the document (e.g. a pill that was just removed),
+      // treat it as an internal click so the chat stays open.
+      if (isOpen && document.contains(e.target) && !win.contains(e.target) && !fab.contains(e.target)) closeChat();
+    });
+    win.addEventListener('click', resetInactivity);
+    win.addEventListener('keydown', resetInactivity);
+  }
+
+  // ── Open / Close ─────────────────────────────────────────────
+  function toggleChat() { isOpen ? closeChat() : openChat(); }
+
+  function openChat() {
+    isOpen = true;
+    fab.classList.add('open');
+    win.classList.add('visible');
+    if (body.children.length === 0) {
+      if (chatHistory.length > 0) {
+        restoreHistoryDOM();
+      } else {
+        showWelcome();
+      }
+    }
+    resetInactivity();
+  }
+
+  function restoreHistoryDOM() {
+    chatHistory.forEach(entry => {
+      if (entry.role === 'user') {
+        const msg = el('div', 'chat-msg user', body);
+        msg.textContent = entry.content;
+      } else {
+        const msg = el('div', 'chat-msg bot', body);
+        msg.innerHTML = formatBotText(entry.content);
+        const chartData = extractChartData(entry.content);
+        if (chartData) {
+          const titleMatch = entry.content.match(/top \d+|best \d+|worst \d+|ranked|comparison|compare/i);
+          const chartTitle = titleMatch ? titleMatch[0].replace(/\b\w/g, c => c.toUpperCase()) : 'Return Comparison';
+          const chartWrap = el('div', 'chat-chart-wrap', msg);
+          renderChatChart(chartWrap, chartData, chartTitle, getSeedNote(entry.content));
+        }
+      }
+    });
+    // Add clear history button after restoration
+    addClearHistoryBtn();
+    // Scroll to bottom
+    body.scrollTop = body.scrollHeight;
+  }
+
+  function addClearHistoryBtn() {
+    if (body.querySelector('.chat-clear-history')) return;
+    const btn = el('button', 'chat-clear-history', body);
+    btn.textContent = 'Clear conversation';
+    btn.addEventListener('click', () => {
+      clearHistory();
+      body.innerHTML = '';
+      showWelcome();
+    });
+  }
+
+  function closeChat() {
+    isOpen = false;
+    fab.classList.remove('open');
+    win.classList.remove('visible');
+    clearInactivity();
+  }
+
+  // ── Inactivity timer ─────────────────────────────────────────
+  function resetInactivity() {
+    clearInactivity();
+    if (autoMessageSent) return;
+    inactivityTimer = setTimeout(onInactive, INACTIVITY_MS);
+  }
+
+  function clearInactivity() {
+    if (inactivityTimer) { clearTimeout(inactivityTimer); inactivityTimer = null; }
+  }
+
+  function onInactive() {
+    autoMessageSent = true;
+    const prompt = REENGAGEMENT_PROMPTS[Math.floor(Math.random() * REENGAGEMENT_PROMPTS.length)];
+    // Auto-open if closed
+    if (!isOpen) openChat();
+    showTyping(true);
+    setTimeout(() => {
+      showTyping(false);
+      addBotMsg(prompt);
+      pillsSection.style.display = '';
+      pillsSection.classList.remove('pills-pulse');
+      void pillsSection.offsetWidth;
+      pillsSection.classList.add('pills-pulse');
+    }, 800);
+  }
+
+  // ── Welcome message ──────────────────────────────────────────
+  function showWelcome() {
+    addBotMsg('Ask me anything about the assets, returns, or ROI — I\'ll analyse the loaded dataset and answer instantly.');
+  }
+
+  // ── Pill handler ─────────────────────────────────────────────
+  function handlePill(q) {
+    resetInactivity();
+    if (q.key === 'other') {
+      textarea.focus();
+      return;
+    }
+    lastUserQuestion = q.label;
+    addUserMsg(q.label);
+    pushHistory('user', q.label);
+    showTyping(true);
+    setTimeout(() => {
+      showTyping(false);
+      const answer = answerQuestion(q.key);
+      addBotMsg(answer);
+      pushHistory('assistant', answer);
+      showFollowUpPills(generateFollowUps(q.label, answer));
+      resetInactivity();
+    }, 600 + Math.random() * 400);
+  }
+
+  // ── Client-side input guardrail ───────────────────────────────
+  const BLOCKED_INPUT = [
+    /ignore (previous|all|your|system|above) (instructions?|prompt|rules?)/i,
+    /you are now|pretend (to be|you are)/i,
+    /forget (everything|your|all|previous)/i,
+    /jailbreak|DAN mode|prompt injection/i,
+    /reveal (your|the) (system )?prompt/i,
+  ];
+  function isBlockedInput(text) {
+    return BLOCKED_INPUT.some(p => p.test(text));
+  }
+
+  // ── Free text ────────────────────────────────────────────────
+  async function sendFreeText() {
+    const text = textarea.value.trim();
+    if (!text) return;
+
+    if (isBlockedInput(text)) {
+      addUserMsg(text);
+      textarea.value = '';
+      autoGrow.call(textarea);
+      const blockedReply = 'I\'m a read-only investment data assistant. I can only answer questions about the assets, returns, and data in the dataset.';
+      addBotMsg(blockedReply);
+      showFollowUpPills(generateFollowUps('', ''));
+      return;
+    }
+
+    lastUserQuestion = text;
+    addUserMsg(text);
+    pushHistory('user', text);
+    textarea.value = '';
+    autoGrow.call(textarea);
+    showTyping(true);
+    setSendDisabled(true);
+
+    let answer = null;
+
+    if (aiAvailable) {
+      answer = await fetchAIAnswer(text, chatHistory.slice(0, -1)); // pass history excluding the just-added user msg
+    }
+
+    // Fall back if AI is unavailable or errored
+    if (!answer) {
+      await simulatedDelay(700 + Math.random() * 500);
+      answer = answerFreeText(text);
+    }
+
+    showTyping(false);
+    setSendDisabled(false);
+    addBotMsg(answer);
+    pushHistory('assistant', answer);
+    showFollowUpPills(generateFollowUps(text, answer));
+    resetInactivity();
+  }
+
+  function setSendDisabled(disabled) {
+    sendBtn.disabled = disabled;
+    textarea.disabled = disabled;
+  }
+
+  function showInputRow() {
+    // Input row is always visible; just focus the textarea
+    textarea.focus();
+  }
+
+  // ── AI call ──────────────────────────────────────────────────
+  // ── Client-side guardrail: sanitise AI reply before rendering ─
+  function sanitiseAIReply(reply) {
+    if (!reply || typeof reply !== 'string') return null;
+    // Strip HTML tags (AI should never return HTML — text/markdown only)
+    let clean = reply.replace(/<[^>]+>/g, '');
+    // Strip code blocks that contain anything that looks executable
+    clean = clean.replace(/```[\s\S]*?```/g, '[code block removed]');
+    clean = clean.replace(/`[^`]{60,}`/g, '[code removed]');
+    // Cap length — genuine answers don't need to be very long
+    if (clean.length > 2000) clean = clean.slice(0, 2000) + '…';
+    return clean.trim() || null;
+  }
+
+  async function fetchAIAnswer(message, history) {
+    try {
+      const assets = getAssets();
+      const assetContext = assets ? buildAssetContext(message, assets) : null;
+
+      // Send last 8 exchanges (16 messages) for context without bloating the request
+      const conversationHistory = (history || []).slice(-16);
+
+      const res = await fetch(AI_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message, assetContext, conversationHistory }),
+      });
+
+      if (!res.ok) return null;
+      const data = await res.json();
+
+      if (!data.ai_available) {
+        aiAvailable = false;
+        updateAIIndicator();
+        return null;
+      }
+      return sanitiseAIReply(data.reply);
+    } catch {
+      return null;
+    }
+  }
+
+  function buildAssetContext(message, assets) {
+    const t = message.toLowerCase();
+
+    // Extract meaningful query keywords (strip common stop words)
+    const stopWords = new Set(['the','and','vs','versus','against','between','or','is','are',
+      'was','did','has','have','a','an','what','which','how','why','when','where','does',
+      'do','give','me','show','tell','compare','comparison','of','for','in','on','at',
+      'to','from','with','about','good','bad','better','best','worst','should','invest',
+      'investment','return','returns','roi','perform','performance']);
+    const keywords = t.split(/\s+/).map(w => w.replace(/[^a-z0-9]/g, '')).filter(w => w.length > 1 && !stopWords.has(w));
+
+    // Find ALL assets that match any keyword — not just the first one
+    const relevantSet = new Set();
+    for (const asset of assets) {
+      const name = (asset.name || '').toLowerCase();
+      const ticker = (name.match(/\(([^)]+)\)/) || [])[1] || '';
+      const cat = (asset.section || asset.category || asset.cat || '').toLowerCase();
+      for (const kw of keywords) {
+        if (name.includes(kw) || ticker === kw || cat.includes(kw)) {
+          relevantSet.add(asset);
+          break;
+        }
+      }
+    }
+
+    // Also do a broader contains-check for each keyword as a standalone word in asset name
+    // (catches "gold" matching "Gold ETF (GLD)" and "Gold Miners (GDX)")
+    for (const kw of keywords) {
+      if (kw.length < 2) continue;
+      for (const asset of assets) {
+        const name = (asset.name || '').toLowerCase();
+        // Match as a word boundary (start of word)
+        if (new RegExp(`(^|\\s|\\()${kw}`).test(name)) relevantSet.add(asset);
+      }
+    }
+
+    const relevantAssets = [...relevantSet].map(pickAssetFields);
+
+    // Send all asset names so the AI can reason about what exists even if we missed something
+    const allAssetNames = assets.map(a => a.name).filter(Boolean);
+
+    const assetClasses = [...new Set(assets.map(a => a.section || a.category || a.cat || 'Unknown'))];
+
+    const avg = (yr) => {
+      const vals = assets.map(a => a['v' + yr]).filter(v => v && !isNaN(v)).map(Number);
+      if (!vals.length) return 'N/A';
+      return '$' + Math.round(vals.reduce((s, v) => s + v, 0) / vals.length).toLocaleString();
+    };
+
+    // Top 10 by 10yr return so AI can rank any asset in context
+    const topByReturn = [...assets]
+      .filter(a => a.v10 && !isNaN(a.v10))
+      .sort((a, b) => b.v10 - a.v10)
+      .slice(0, 10)
+      .map(a => ({ name: a.name, v10: a.v10, g10: a.g10 }));
+
+    return {
+      totalAssets: assets.length,
+      assetClasses,
+      allAssetNames,
+      relevantAssets,
+      topByReturn,
+      datasetSummary: { avg1yr: avg(1), avg5yr: avg(5), avg10yr: avg(10) },
+    };
+  }
+
+  function pickAssetFields(asset) {
+    return {
+      name: asset.name,
+      category: asset.section || asset.category || asset.cat || 'Unknown',
+      v1: asset.v1, g1: asset.g1,
+      v5: asset.v5, g5: asset.g5,
+      v10: asset.v10, g10: asset.g10,
+      v15: asset.v15, g15: asset.g15,
+      v20: asset.v20, g20: asset.g20,
+    };
+  }
+
+  // ── Answer engine (local regex / smart fallback) ─────────────
+  function getAssets() {
+    try { if (typeof allData !== 'undefined' && allData) return allData; } catch(e){}
+    try { if (typeof DEFAULT_DATA !== 'undefined' && DEFAULT_DATA) return DEFAULT_DATA; } catch(e){}
+    if (typeof window.allData !== 'undefined') return window.allData;
+    return null;
+  }
+
+  function fmt(v) {
+    if (v == null || isNaN(v)) return 'N/A';
+    return '$' + Number(v).toLocaleString('en-US', { maximumFractionDigits: 0 });
+  }
+  function fmtX(v) {
+    if (v == null || isNaN(v)) return 'N/A';
+    return Number(v).toFixed(1) + 'x';
+  }
+
+  function answerQuestion(key) {
+    const assets = getAssets();
+    if (!assets || assets.length === 0) {
+      return 'No dataset is loaded yet. Please load a CSV file using the "Load Data" button.';
+    }
+    switch (key) {
+      case 'best10yr':    return best10yr(assets);
+      case 'bestROI':     return bestROI(assets);
+      case 'topClass':    return topClass(assets);
+      case 'worst':       return worstPerformers(assets);
+      case 'avgReturns':  return avgReturns(assets);
+      case 'consistent':  return mostConsistent(assets);
+      default: return 'I\'m not sure how to answer that yet.';
+    }
+  }
+
+  function answerFreeText(text) {
+    const assets = getAssets();
+    if (!assets || assets.length === 0) {
+      return 'No dataset is loaded yet. Load a CSV file first, then ask away.';
+    }
+
+    const t = text.toLowerCase();
+
+    // ── Time-period best/top queries ─────────────────────────
+    if (/(best|top|highest|greatest|biggest).*(1.?yr?|1.?year|one.?year)/i.test(t)) return best10yr(assets, 1);
+    if (/(best|top|highest|greatest|biggest).*(5.?yr?|5.?year|five.?year)/i.test(t)) return best10yr(assets, 5);
+    if (/(best|top|highest|greatest|biggest).*(10.?yr?|10.?year|ten.?year)/i.test(t)) return best10yr(assets, 10);
+    if (/(best|top|highest|greatest|biggest).*(15.?yr?|15.?year|fifteen.?year)/i.test(t)) return best10yr(assets, 15);
+    if (/(best|top|highest|greatest|biggest).*(20.?yr?|20.?year|twenty.?year)/i.test(t)) return best10yr(assets, 20);
+
+    // ── General performance queries ──────────────────────────
+    if (/best|top|highest|greatest|biggest/.test(t) && /roi|return|perform|investment/.test(t)) return bestROI(assets);
+    if (/worst|bottom|lowest|poorest|terrible/.test(t)) return worstPerformers(assets);
+    if (/average|avg|mean|typical/.test(t)) return avgReturns(assets);
+    if (/consistent|stable|reliable|steady|safe/.test(t)) return mostConsistent(assets);
+    if (/class|section|category|sector/.test(t)) return topClass(assets);
+
+    // ── Count / inventory queries ────────────────────────────
+    if (/how many|count|total|number of/.test(t)) {
+      const cats = [...new Set(assets.map(a => a.section || a.category || a.cat || 'Unknown'))];
+      return `The dataset contains **${assets.length} assets** across **${cats.length} asset classes**: ${cats.join(', ')}.`;
+    }
+
+    // ── Detect performance-flavoured intent ───────────────────
+    const isPerformanceQ = /(good|bad|great|poor|strong|weak|well|perform|worth|recommend|invest|should i|how (has|did|is)|growth|return)/i.test(t);
+
+    // ── Asset name lookup (full name then word-by-word) ───────
+    const byNameLen = [...assets].sort((a, b) => (b.name || '').length - (a.name || '').length);
+    for (const asset of byNameLen) {
+      const name = (asset.name || '').toLowerCase();
+      const tickerMatch = name.match(/\(([^)]+)\)/);
+      const ticker = tickerMatch ? tickerMatch[1] : null;
+      if (
+        (name.length > 2 && t.includes(name)) ||
+        (ticker && ticker.length > 1 && t.includes(ticker))
+      ) {
+        return isPerformanceQ ? assetPerformanceSummary(asset) : assetDetail(asset);
+      }
+    }
+
+    const words = text.split(/\s+/).filter(w => w.length > 2);
+    for (const word of words) {
+      const match = assets.find(a => (a.name || '').toLowerCase().includes(word.toLowerCase()));
+      if (match) return isPerformanceQ ? assetPerformanceSummary(match) : assetDetail(match);
+    }
+
+    // ── Category-scoped best query ───────────────────────────
+    const allClasses = [...new Set(assets.map(a => a.section || a.category || a.cat || ''))];
+    for (const cls of allClasses) {
+      if (cls && t.includes(cls.toLowerCase())) return bestInClass(assets, cls);
+    }
+
+    return `I searched **${assets.length} assets** but couldn't find a specific match. Try asking "is Gold a good performer", "best 10-year returns", "worst performers", or name any specific asset.`;
+  }
+
+  // ── Follow-up pills ──────────────────────────────────────────
+  function generateFollowUps(question, answer) {
+    const q = (question || '').toLowerCase();
+    const a = (answer || '').toLowerCase();
+    const combined = q + ' ' + a;
+    const pool = [];
+
+    // ── 1. Extract named assets from the answer (bolded names in **…**) ──────
+    const namedAssets = [];
+    const boldMatches = answer.matchAll(/\*\*([^*]{3,50})\*\*/g);
+    for (const m of boldMatches) {
+      const name = m[1].trim();
+      // Skip pure number/value strings and common non-asset bold text
+      if (!/^\$|^\d|^top|^best|^worst|^avg|^average|^median|^strong|^moderate|^low/i.test(name) && name.length > 3) {
+        namedAssets.push(name);
+      }
+    }
+    // Deduplicate named assets (first 4 unique)
+    const uniqueAssets = [...new Set(namedAssets)].slice(0, 4);
+
+    // ── 2. Detect which time horizons are in scope ────────────────────────────
+    const horizons = [];
+    if (/\b1.?yr|\b1.?year|\bone.?year/i.test(combined)) horizons.push(1);
+    if (/\b5.?yr|\b5.?year|\bfive.?year/i.test(combined)) horizons.push(5);
+    if (/\b10.?yr|\b10.?year|\bten.?year/i.test(combined)) horizons.push(10);
+    if (/\b15.?yr|\b15.?year|\bfifteen.?year/i.test(combined)) horizons.push(15);
+    if (/\b20.?yr|\b20.?year|\btwenty.?year/i.test(combined)) horizons.push(20);
+    const primaryHorizon = horizons[0] || 10;
+    const altHorizons = [1, 5, 10, 15, 20].filter(h => !horizons.includes(h));
+
+    // ── 3. Detect asset categories mentioned ─────────────────────────────────
+    const inStocks  = /\bstock|equity/i.test(combined);
+    const inETF     = /\betf|fund\b/i.test(combined);
+    const inCrypto  = /\bbitcoin|\bcrypto|\bbtc|\beth\b|\bethereum/i.test(combined);
+    const inGold    = /\bgold|silver|precious metal|commodit/i.test(combined);
+    const inRE      = /\breal.?estate|\breit/i.test(combined);
+    const inTech    = /\btech|nvidia|amd|intel|semiconductor|software|ai stock/i.test(combined);
+    const inESG     = /\besg|ethical|sustain|clean|renewable|green/i.test(combined);
+    const inHealth  = /\bhealthcare|pharma|biotech|medical/i.test(combined);
+    const inFinance = /\bbank|finance|financial|fintech/i.test(combined);
+    const isRanking = /top \d|best \d|worst \d|ranked|rank #/i.test(combined);
+    const isCompare = /vs|versus|against|compare|comparison/i.test(combined);
+    const isConsist = /consistent|stable|reliable|steady|low variance/i.test(combined);
+    const isWorst   = /worst|bottom|lowest|poor/i.test(combined);
+    const isAvg     = /average|avg|mean|typical/i.test(combined);
+
+    // ── 4. Build contextual suggestions from what was actually discussed ──────
+
+    // Asset-specific drill-downs (for each named asset in the answer)
+    uniqueAssets.forEach((name, i) => {
+      if (i === 0) {
+        // Primary asset: offer alternate horizons and compare
+        const alt = altHorizons[0] || (primaryHorizon === 10 ? 5 : 10);
+        pool.push(`How did ${name} perform over ${alt} years?`);
+        if (uniqueAssets[1]) pool.push(`Compare ${name} vs ${uniqueAssets[1]}`);
+        else if (inCrypto && !name.toLowerCase().includes('gold')) pool.push(`Compare ${name} with Gold`);
+        else if (inGold && !name.toLowerCase().includes('bitcoin')) pool.push(`Compare ${name} with Bitcoin`);
+        else if (inStocks) pool.push(`Is ${name} the best in its class?`);
+      } else if (i === 1) {
+        pool.push(`What is ${name}'s 20-year return?`);
+      }
+    });
+
+    // Horizon alternates — only if a specific horizon was discussed
+    if (horizons.length > 0) {
+      altHorizons.slice(0, 2).forEach(h => pool.push(`Best assets over ${h} years`));
+    }
+
+    // Category drill-downs based on what was mentioned
+    if (isRanking && !isWorst) pool.push(`What are the worst ${primaryHorizon}-year performers?`);
+    if (isRanking && !inETF)   pool.push(`Best ETFs over ${primaryHorizon} years`);
+    if (isWorst) pool.push('What are the top performing assets?', 'Most consistent performers');
+    if (isConsist) pool.push(`Highest overall ROI`, `Best ${primaryHorizon}-year returns`);
+    if (isAvg) pool.push('Best performers above average', 'Worst performers vs average');
+    if (isCompare && uniqueAssets.length >= 2) pool.push(`Which has better 20-year returns?`);
+
+    if (inStocks && !inETF)    pool.push('How do ETFs compare to stocks?', `Best stock over ${primaryHorizon} years`);
+    if (inETF && !inStocks)    pool.push('How do ETFs compare to stocks?', 'Best ETF by 10-year return');
+    if (inCrypto)              pool.push('Compare crypto with Gold', 'Best 20-year return assets', 'Top asset class overall');
+    if (inGold && !inCrypto)   pool.push('Gold vs Bitcoin performance', 'Best commodity by 10yr return');
+    if (inRE)                  pool.push('Best REIT performers', 'Real estate vs stocks comparison');
+    if (inTech)                pool.push('Best tech stocks by 10yr', 'Tech vs S&P 500 comparison');
+    if (inESG)                 pool.push('ESG vs S&P 500 returns', 'Best renewable energy assets');
+    if (inHealth)              pool.push('Best biotech by 10yr return', 'Healthcare vs S&P 500');
+    if (inFinance)             pool.push('Best financial stocks by return', 'Fintech vs traditional banks');
+
+    // Visualisation context
+    if (/chart|visual|graph|plot|donut|scatter|breakdown|distribution|median/i.test(combined))
+      pool.push('What does the scatter plot show?', 'Explain the category breakdown chart', 'Top assets by return chart');
+
+    // ── 5. Generic fallbacks (only used to fill remaining slots) ─────────────
+    const fallbacks = [
+      `Best assets over ${primaryHorizon} years`,
+      'Highest overall ROI',
+      'Most consistent performers',
+      'Average returns across all assets',
+      'Worst performing assets',
+      'Top asset class by return',
+      'Best 20-year assets',
+      'Compare Stocks vs ETFs',
+      'Best dividend assets',
+      'Top tech performers',
+      'Safest long-term investments',
+    ];
+
+    // Deduplicate and pick 6 from pool then fill with fallbacks
+    const seen = new Set();
+    const picks = [];
+    for (const s of [...pool, ...fallbacks]) {
+      if (!seen.has(s) && picks.length < 6) { seen.add(s); picks.push(s); }
+    }
+    picks.push('Other');
+    return picks;
+  }
+
+  function showFollowUpPills(suggestions) {
+    // Remove any existing follow-up row
+    const existing = body.querySelector('.chat-followup-row');
+    if (existing) existing.remove();
+
+    const row = el('div', 'chat-followup-row', body);
+    const label = el('div', 'chat-followup-label', row);
+    label.textContent = 'Follow up:';
+    const pills = el('div', 'chat-followup-pills', row);
+
+    suggestions.forEach(text => {
+      const pill = el('button', 'chat-followup-pill' + (text === 'Other' ? ' pill-other' : ''), pills);
+      pill.textContent = text;
+      pill.addEventListener('click', () => {
+        row.remove();
+        if (text === 'Other') {
+          showInputRow();
+          textarea.focus();
+          return;
+        }
+        lastUserQuestion = text;
+        addUserMsg(text);
+        pushHistory('user', text);
+        showTyping(true);
+        setTimeout(async () => {
+          showTyping(false);
+          let answer = null;
+          if (aiAvailable) answer = await fetchAIAnswer(text, chatHistory.slice(0, -1));
+          if (!answer) answer = answerFreeText(text);
+          addBotMsg(answer);
+          pushHistory('assistant', answer);
+          showFollowUpPills(generateFollowUps(text, answer));
+          resetInactivity();
+        }, 500 + Math.random() * 300);
+      });
+    });
+
+    row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  // ── Answer helpers ───────────────────────────────────────────
+  function best10yr(assets, yr = 10) {
+    const key = `v${yr}`;
+    const seed = (typeof window.seedMultiplier !== 'undefined') ? 1000 * window.seedMultiplier : 1000;
+    const sorted = assets
+      .filter(a => a[key] && !isNaN(a[key]))
+      .sort((a, b) => b[key] - a[key])
+      .slice(0, 5);
+    if (!sorted.length) return `No ${yr}-year data available.`;
+    const lines = sorted.map((a, i) => `${i + 1}. **${a.name}** — ${fmt(a[key])} (${fmtX(a[key] / seed)})`);
+    return `Top 5 assets by ${yr}-year return:\n${lines.join('\n')}`;
+  }
+
+  function bestROI(assets) {
+    const yrs = [20, 15, 10, 5, 1];
+    const scored = assets.map(a => {
+      let best = 0, bestYr = 0;
+      yrs.forEach(y => { const v = a['v' + y]; if (v && !isNaN(v) && v > best) { best = v; bestYr = y; } });
+      return { ...a, _best: best, _bestYr: bestYr };
+    }).filter(a => a._best > 0).sort((a, b) => b._best - a._best).slice(0, 5);
+    const lines = scored.map((a, i) => `${i + 1}. **${a.name}** — ${fmt(a._best)} over ${a._bestYr}yr`);
+    return `Top 5 overall ROI performers:\n${lines.join('\n')}`;
+  }
+
+  function topClass(assets) {
+    const map = {};
+    assets.forEach(a => {
+      const cls = a.section || a.category || a.cat || 'Unknown';
+      const v = a.v10 || a.v5 || a.v1 || 0;
+      if (!map[cls]) map[cls] = { sum: 0, count: 0 };
+      if (v && !isNaN(v)) { map[cls].sum += Number(v); map[cls].count++; }
+    });
+    const sorted = Object.entries(map)
+      .filter(([, d]) => d.count > 0)
+      .map(([cls, d]) => ({ cls, avg: d.sum / d.count, count: d.count }))
+      .sort((a, b) => b.avg - a.avg);
+    if (!sorted.length) return 'Could not compute asset class averages.';
+    const lines = sorted.slice(0, 4).map((c, i) => `${i + 1}. **${c.cls}** — avg ${fmt(c.avg)} (${c.count} assets)`);
+    return `Asset classes ranked by average 10-year return:\n${lines.join('\n')}`;
+  }
+
+  function worstPerformers(assets) {
+    const sorted = assets
+      .filter(a => a.v10 && !isNaN(a.v10))
+      .sort((a, b) => a.v10 - b.v10)
+      .slice(0, 5);
+    if (!sorted.length) return 'No 10-year data found.';
+    const lines = sorted.map((a, i) => `${i + 1}. **${a.name}** — ${fmt(a.v10)} over 10yr`);
+    return `Bottom 5 performers by 10-year return:\n${lines.join('\n')}`;
+  }
+
+  function avgReturns(assets) {
+    const yrs = [1, 5, 10, 15, 20];
+    const lines = yrs.map(y => {
+      const vals = assets.map(a => a['v' + y]).filter(v => v && !isNaN(v));
+      if (!vals.length) return null;
+      const avg = vals.reduce((s, v) => s + Number(v), 0) / vals.length;
+      const med = median(vals.map(Number));
+      return `**${y}yr** — avg ${fmt(avg)}, median ${fmt(med)} (${vals.length} assets)`;
+    }).filter(Boolean);
+    return `Average returns across the dataset:\n${lines.join('\n')}`;
+  }
+
+  function mostConsistent(assets) {
+    const yrs = [1, 5, 10, 15, 20];
+    const scored = assets.map(a => {
+      const vals = yrs.map(y => a['v' + y]).filter(v => v && !isNaN(v)).map(Number);
+      if (vals.length < 3) return null;
+      const mean = vals.reduce((s, v) => s + v, 0) / vals.length;
+      const variance = vals.reduce((s, v) => s + (v - mean) ** 2, 0) / vals.length;
+      const cv = Math.sqrt(variance) / mean;
+      return { ...a, _cv: cv, _mean: mean };
+    }).filter(Boolean).sort((a, b) => a._cv - b._cv).slice(0, 5);
+    if (!scored.length) return 'Not enough multi-year data to determine consistency.';
+    const lines = scored.map((a, i) => `${i + 1}. **${a.name}** — avg ${fmt(a._mean)} with low variance`);
+    return `Most consistent performers (low return volatility):\n${lines.join('\n')}`;
+  }
+
+  function assetDetail(a) {
+    const yrs = [1, 5, 10, 15, 20];
+    const lines = yrs.map(y => {
+      const v = a['v' + y];
+      return v && !isNaN(v) ? `**${y}yr:** ${fmt(v)}` : null;
+    }).filter(Boolean);
+    const cls = a.section || a.category || a.cat || 'Unknown';
+    return `**${a.name}** (${cls})\n${lines.length ? lines.join(' · ') : 'No return data available.'}`;
+  }
+
+  function assetPerformanceSummary(a) {
+    const cls = a.section || a.category || a.cat || 'Unknown';
+    const yrs = [1, 5, 10, 15, 20];
+    const vals = yrs.map(y => ({ y, v: a['v' + y] })).filter(d => d.v && !isNaN(d.v));
+    if (!vals.length) return `No return data is available for **${a.name}**.`;
+
+    const seed = (typeof window.seedMultiplier !== 'undefined') ? 1000 * window.seedMultiplier : 1000;
+    const best = vals.reduce((b, d) => d.v > b.v ? d : b, vals[0]);
+    const multiplier = (best.v / seed).toFixed(1);
+
+    const returnLines = vals.map(d => `**${d.y}yr:** ${fmt(d.v)} (${fmtX(d.v / seed)})`).join(' · ');
+
+    let verdict;
+    if (best.v > seed * 10) verdict = `Strong performer — **${multiplier}x** return over ${best.y} years based on a $${seed.toLocaleString()} investment.`;
+    else if (best.v > seed * 3) verdict = `Moderate performer — **${multiplier}x** return over ${best.y} years.`;
+    else verdict = `Low performer relative to the dataset — only **${multiplier}x** over ${best.y} years.`;
+
+    return `**${a.name}** (${cls})\n${returnLines}\n\n${verdict}`;
+  }
+
+  function bestInClass(assets, cls) {
+    const filtered = assets.filter(a =>
+      (a.section || a.category || a.cat || '').toLowerCase() === cls.toLowerCase()
+    );
+    if (!filtered.length) return `No assets found in the **${cls}** category.`;
+    const sorted = filtered.filter(a => a.v10 && !isNaN(a.v10)).sort((a, b) => b.v10 - a.v10).slice(0, 5);
+    if (!sorted.length) return `No 10-year data available for **${cls}** assets.`;
+    const lines = sorted.map((a, i) => `${i + 1}. **${a.name}** — ${fmt(a.v10)} (10yr)`);
+    return `Top performers in **${cls}**:\n${lines.join('\n')}`;
+  }
+
+  function median(arr) {
+    const s = [...arr].sort((a, b) => a - b);
+    const mid = Math.floor(s.length / 2);
+    return s.length % 2 ? s[mid] : (s[mid - 1] + s[mid]) / 2;
+  }
+
+  function simulatedDelay(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  // ── UI helpers ───────────────────────────────────────────────
+  let typingEl = null;
+
+  function playBeep() {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      // Two-note "ding-ding" — like iMessage / WhatsApp receive tone
+      const notes = [
+        { freq: 1046.5, start: 0,    dur: 0.12 },  // C6
+        { freq: 1318.5, start: 0.13, dur: 0.16 },  // E6
+      ];
+      notes.forEach(({ freq, start, dur }) => {
+        const osc  = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, ctx.currentTime + start);
+        gain.gain.setValueAtTime(0, ctx.currentTime + start);
+        gain.gain.linearRampToValueAtTime(0.10, ctx.currentTime + start + 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + start + dur);
+        osc.start(ctx.currentTime + start);
+        osc.stop(ctx.currentTime + start + dur + 0.02);
+      });
+    } catch { /* audio not available */ }
+  }
+
+  function formatBotText(text) {
+    const lines = text.split('\n');
+    let html = '';
+    let inList = false;
+    let listType = '';
+
+    const closeList = () => {
+      if (inList) { html += listType === 'ol' ? '</ol>' : '</ul>'; inList = false; listType = ''; }
+    };
+
+    const inlineFormat = (s) =>
+      s.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+       .replace(/\*(.+?)\*/g, '<em>$1</em>')
+       .replace(/`([^`]+)`/g, '<code>$1</code>');
+
+    lines.forEach(raw => {
+      const line = raw.trimEnd();
+      if (!line.trim()) { closeList(); html += '<div class="chat-spacer"></div>'; return; }
+
+      // Numbered list  "1. text"
+      const numMatch = line.match(/^(\d+)\.\s+(.+)/);
+      if (numMatch) {
+        if (!inList || listType !== 'ol') { closeList(); html += '<ol class="chat-ol">'; inList = true; listType = 'ol'; }
+        html += `<li>${inlineFormat(numMatch[2])}</li>`;
+        return;
+      }
+
+      // Bullet list  "- text" or "• text"
+      const bulletMatch = line.match(/^[-•]\s+(.+)/);
+      if (bulletMatch) {
+        if (!inList || listType !== 'ul') { closeList(); html += '<ul class="chat-ul">'; inList = true; listType = 'ul'; }
+        html += `<li>${inlineFormat(bulletMatch[1])}</li>`;
+        return;
+      }
+
+      closeList();
+
+      // Section header  "### text" or "## text"
+      const hMatch = line.match(/^#{1,3}\s+(.+)/);
+      if (hMatch) { html += `<div class="chat-section-head">${inlineFormat(hMatch[1])}</div>`; return; }
+
+      // Key: value pattern  "Label: value"
+      const kvMatch = line.match(/^([^:]{2,30}):\s+(.+)/);
+      if (kvMatch) {
+        html += `<div class="chat-kv"><span class="chat-kv-key">${inlineFormat(kvMatch[1])}:</span> <span class="chat-kv-val">${inlineFormat(kvMatch[2])}</span></div>`;
+        return;
+      }
+
+      html += `<p class="chat-p">${inlineFormat(line)}</p>`;
+    });
+    closeList();
+    return html;
+  }
+
+  // ── In-chat chart rendering ──────────────────────────────────
+  function extractChartData(text) {
+    const items = [];
+    const lines = text.split('\n');
+
+    // Words that indicate a line is prose, not a data row
+    const PROSE_STOP = /^(the|a|an|across|at|by|and|or|in|on|for|of|yr|year|return|invest|over|most|top|best|worst|all|every|with|this|that|these|those|from|its|so|is|are|was|were|will|has|have|had|be|been|being|they|their|there|then|when|where|which|what|how|why|who|than|more|less|both|each|other|total|gain|since|while|also|even|only|just|not|no|any|our|we|you|your|him|her|it|up|down|out|into|about|like|such|per|as|if|asia|europe|out)$/i;
+
+    // Helper: extract the largest dollar value anywhere in a line
+    function extractValue(str) {
+      // Match ~$350,000 or $350,000 or $350k or $3.5M
+      const matches = [...str.matchAll(/~?\$\s*([\d,]+(?:\.\d+)?)\s*([kKmM]?)/g)];
+      let best = 0;
+      for (const m of matches) {
+        let v = parseFloat(m[1].replace(/,/g, ''));
+        const suffix = (m[2] || '').toLowerCase();
+        if (suffix === 'k') v *= 1000;
+        if (suffix === 'm') v *= 1000000;
+        if (v > best) best = v;
+      }
+      return best > 0 ? Math.round(best) : 0;
+    }
+
+    // Helper: extract name from a line prefix (strips markdown bold, tickers)
+    function extractName(raw) {
+      // Remove leading list markers: "1. " or "- " or "• "
+      let s = raw.replace(/^(\d+\.|[-•])\s+/, '').trim();
+      // Strip bold markers
+      s = s.replace(/\*\*/g, '').replace(/\*/g, '');
+      // Take everything up to the first em-dash, colon, or " —"
+      s = s.replace(/\s*[—–]\s.*$/, '').replace(/\s*:.*$/, '');
+      // Strip trailing ticker "(TICK)" or "(BTC)" — keep the name
+      s = s.replace(/\s*\([A-Z0-9.]{1,8}\)\s*$/, '').trim();
+      return s;
+    }
+
+    for (const raw of lines) {
+      const line = raw.trim();
+      if (!line) continue;
+
+      // Must start with a numbered item or bullet
+      const isNumbered = /^\d+[\.\)]\s+/.test(line);
+      const isBullet   = /^[-•]\s+/.test(line);
+      if (!isNumbered && !isBullet) continue;
+
+      // Must contain a dollar amount somewhere on the line
+      const val = extractValue(line);
+      if (val < 100) continue;
+
+      const name = extractName(line);
+      if (!name || name.length < 3) continue;
+      if (PROSE_STOP.test(name)) continue;
+
+      // Avoid duplicates
+      if (!items.find(x => x.name === name) && items.length < 10) {
+        items.push({ name, val });
+      }
+    }
+
+    // ── Comparison table fallback ─────────────────────────────────────────────
+    // Catches lines like "**1yr:** Asia $1,320 vs Europe $1,100"
+    // Returns a grouped structure so the renderer can draw paired bars.
+    if (items.length < 2) {
+      const rows = [];
+      let labelA = '', labelB = '';
+
+      for (const raw of lines) {
+        const line = raw.trim();
+        // Must contain "vs" and two dollar amounts
+        if (!/\bvs\.?\b/i.test(line)) continue;
+        const m = line.match(/\*{0,2}([^*—\n]{1,20})\*{0,2}\s*[—–:]\s*(.+?)\bvs\.?\s*(.+)/i);
+        if (!m) continue;
+
+        const rowLabel = m[1].replace(/\*\*/g, '').replace(/:$/, '').trim();
+        const sideA = extractValue(m[2]);
+        const sideB = extractValue(m[3]);
+        if (sideA < 100 || sideB < 100) continue;
+
+        // Detect group names from first qualifying row
+        if (!labelA) {
+          const mA = m[2].match(/([A-Z][a-zA-Z\s]{1,15}?)(?:\s*(?:avg|average))?\s*[:$]/);
+          const mB = m[3].match(/([A-Z][a-zA-Z\s]{1,15}?)(?:\s*(?:avg|average))?\s*[:$]/);
+          labelA = mA ? mA[1].trim() : 'Group A';
+          labelB = mB ? mB[1].trim() : 'Group B';
+        }
+
+        rows.push({ label: rowLabel, valA: sideA, valB: sideB });
+      }
+
+      if (rows.length >= 2) {
+        return { type: 'grouped', labelA, labelB, rows };
+      }
+    }
+
+    return items.length >= 2 ? { type: 'ranked', items } : null;
+  }
+
+  // Two fixed colours for grouped/comparison charts
+  const GROUP_COLOR_A = '#2563eb'; // blue  — first comparator
+  const GROUP_COLOR_B = '#059669'; // green — second comparator
+
+  // Palette: distinct colours for ranked (single-series) charts
+  const CHART_PALETTE = [
+    '#2563eb','#0891b2','#059669','#d97706','#dc2626',
+    '#7c3aed','#db2777','#0284c7','#65a30d','#b45309',
+  ];
+
+  function fmtDollar(v) {
+    if (v >= 1000000) return '$' + (v / 1000000).toFixed(1) + 'M';
+    if (v >= 1000)    return '$' + (v / 1000).toFixed(0) + 'k';
+    return '$' + v;
+  }
+
+  function drawRoundRect(ctx, x, y, w, h, r) {
+    if (ctx.roundRect) { ctx.roundRect(x, y, w, h, r); return; }
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+    ctx.lineTo(x + w, y + h - r);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    ctx.lineTo(x + r, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.closePath();
+  }
+
+  function renderChatChart(container, chartData, chartTitle, seedNote) {
+    if (!chartData) return;
+    if (chartData.type === 'grouped') {
+      renderGroupedChart(container, chartData, chartTitle, seedNote);
+    } else {
+      renderRankedChart(container, chartData.items, chartTitle, seedNote);
+    }
+  }
+
+  // ── Grouped (comparison) chart — two coloured bars per row ───────────────
+  function renderGroupedChart(container, data, chartTitle, seedNote) {
+    const { labelA, labelB, rows } = data;
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+
+    const BAR_H   = 16; // height of each individual bar
+    const BAR_GAP = 3;  // gap between the two bars in a group
+    const ROW_GAP = 10; // gap between groups
+    const LABEL_W = 52;
+    const VAL_W   = 50;
+    const BAR_MAX = 170;
+    const PAD     = 14;
+    const LEGEND_H = 22;
+    const TITLE_H  = chartTitle ? 28 : 0;
+    const GROUP_H  = BAR_H * 2 + BAR_GAP;
+    const W = LABEL_W + BAR_MAX + VAL_W + PAD * 2;
+    const H = TITLE_H + LEGEND_H + rows.length * (GROUP_H + ROW_GAP) - ROW_GAP + PAD * 2;
+
+    const canvas = document.createElement('canvas');
+    const ratio  = window.devicePixelRatio || 1;
+    canvas.width  = W * ratio;
+    canvas.height = H * ratio;
+    canvas.style.width  = W + 'px';
+    canvas.style.height = H + 'px';
+    canvas.className = 'chat-chart-canvas';
+
+    const ctx = canvas.getContext('2d');
+    ctx.scale(ratio, ratio);
+
+    const maxVal = Math.max(...rows.flatMap(r => [r.valA, r.valB]));
+    const textColor  = isDark ? '#cbd5e1' : '#334155';
+    const titleColor = isDark ? '#e2e6f0' : '#0f1523';
+    const trackFill  = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)';
+
+    ctx.clearRect(0, 0, W, H);
+    const FONT = `-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
+
+    // Title
+    if (chartTitle) {
+      ctx.font = `700 12px ${FONT}`;
+      ctx.fillStyle = titleColor;
+      ctx.textBaseline = 'middle';
+      ctx.textAlign = 'left';
+      ctx.fillText(chartTitle, PAD, TITLE_H / 2);
+    }
+
+    // Legend
+    const legendY = TITLE_H + 4;
+    const legendItems = [[GROUP_COLOR_A, labelA], [GROUP_COLOR_B, labelB]];
+    let lx = PAD + LABEL_W;
+    legendItems.forEach(([color, lbl]) => {
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.roundRect ? ctx.roundRect(lx, legendY + 5, 10, 10, 2) : ctx.rect(lx, legendY + 5, 10, 10);
+      ctx.fill();
+      ctx.font = `500 10.5px ${FONT}`;
+      ctx.fillStyle = textColor;
+      ctx.textBaseline = 'middle';
+      ctx.textAlign = 'left';
+      ctx.fillText(lbl, lx + 13, legendY + 10);
+      lx += 13 + ctx.measureText(lbl).width + 14;
+    });
+
+    // Rows
+    const bx = PAD + LABEL_W;
+    rows.forEach((row, i) => {
+      const gy = TITLE_H + LEGEND_H + PAD + i * (GROUP_H + ROW_GAP);
+
+      // Row label (centre-aligned vertically across both bars)
+      ctx.font = `600 11px ${FONT}`;
+      ctx.fillStyle = textColor;
+      ctx.textBaseline = 'middle';
+      ctx.textAlign = 'right';
+      const lbl = row.label.length > 6 ? row.label.slice(0, 5) + '…' : row.label;
+      ctx.fillText(lbl, PAD + LABEL_W - 6, gy + GROUP_H / 2);
+
+      [[row.valA, GROUP_COLOR_A], [row.valB, GROUP_COLOR_B]].forEach(([val, color], si) => {
+        const by = gy + si * (BAR_H + BAR_GAP);
+        const barW = Math.max(4, Math.round((val / maxVal) * BAR_MAX));
+
+        // Track
+        ctx.beginPath();
+        drawRoundRect(ctx, bx, by, BAR_MAX, BAR_H, 3);
+        ctx.fillStyle = trackFill;
+        ctx.fill();
+
+        // Bar
+        ctx.beginPath();
+        drawRoundRect(ctx, bx, by, barW, BAR_H, 3);
+        ctx.fillStyle = color;
+        ctx.globalAlpha = 0.9;
+        ctx.fill();
+        ctx.globalAlpha = 1;
+
+        // Value
+        ctx.font = `600 10.5px ${FONT}`;
+        ctx.fillStyle = color;
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(fmtDollar(val), bx + barW + 4, by + BAR_H / 2);
+      });
+    });
+
+    container.appendChild(canvas);
+    if (seedNote) {
+      const note = document.createElement('div');
+      note.className = 'chat-chart-note';
+      note.textContent = seedNote;
+      container.appendChild(note);
+    }
+  }
+
+  // ── Ranked (single-series) chart ─────────────────────────────────────────
+  function renderRankedChart(container, items, chartTitle, seedNote) {
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const BAR_H   = 22;
+    const GAP     = 8;
+    const LABEL_W = 118;
+    const VAL_W   = 58;
+    const BAR_MAX = 180;
+    const PAD     = 14;
+    const TITLE_H = chartTitle ? 28 : 0;
+    const W = LABEL_W + BAR_MAX + VAL_W + PAD * 2;
+    const H = TITLE_H + items.length * (BAR_H + GAP) - GAP + PAD * 2;
+
+    const canvas = document.createElement('canvas');
+    const ratio  = window.devicePixelRatio || 1;
+    canvas.width  = W * ratio;
+    canvas.height = H * ratio;
+    canvas.style.width  = W + 'px';
+    canvas.style.height = H + 'px';
+    canvas.className = 'chat-chart-canvas';
+
+    const ctx = canvas.getContext('2d');
+    ctx.scale(ratio, ratio);
+
+    const maxVal = Math.max(...items.map(d => d.val));
+    const textColor  = isDark ? '#cbd5e1' : '#334155';
+    const titleColor = isDark ? '#e2e6f0' : '#0f1523';
+    const FONT = `-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
+
+    ctx.clearRect(0, 0, W, H);
+
+    if (chartTitle) {
+      ctx.font = `700 12px ${FONT}`;
+      ctx.fillStyle = titleColor;
+      ctx.textBaseline = 'middle';
+      ctx.textAlign = 'left';
+      ctx.fillText(chartTitle, PAD, TITLE_H / 2);
+    }
+
+    items.forEach((item, i) => {
+      const y = TITLE_H + PAD + i * (BAR_H + GAP);
+      const barW = Math.max(4, Math.round((item.val / maxVal) * BAR_MAX));
+      const color = CHART_PALETTE[i % CHART_PALETTE.length];
+
+      ctx.font = `500 11px ${FONT}`;
+      ctx.fillStyle = i === 0 ? titleColor : textColor;
+      ctx.textBaseline = 'middle';
+      ctx.textAlign = 'right';
+      const label = item.name.length > 17 ? item.name.slice(0, 15) + '…' : item.name;
+      ctx.fillText(label, PAD + LABEL_W - 6, y + BAR_H / 2);
+
+      const bx = PAD + LABEL_W;
+      ctx.beginPath();
+      drawRoundRect(ctx, bx, y, BAR_MAX, BAR_H, 4);
+      ctx.fillStyle = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)';
+      ctx.fill();
+
+      ctx.beginPath();
+      drawRoundRect(ctx, bx, y, barW, BAR_H, 4);
+      ctx.fillStyle = color;
+      ctx.globalAlpha = i === 0 ? 1 : 0.72 + 0.06 * (1 - i / items.length);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+
+      ctx.font = i === 0 ? `700 11px ${FONT}` : `600 11px ${FONT}`;
+      ctx.fillStyle = color;
+      ctx.textAlign = 'left';
+      ctx.fillText(fmtDollar(item.val), bx + barW + 5, y + BAR_H / 2);
+    });
+
+    container.appendChild(canvas);
+
+    if (seedNote) {
+      const note = document.createElement('div');
+      note.className = 'chat-chart-note';
+      note.textContent = seedNote;
+      container.appendChild(note);
+    }
+  }
+
+  function getSeedNote(text) {
+    // Try to detect which horizon(s) are referenced in the text
+    const horizons = [];
+    if (/\b20.?yr|\b20.?year/i.test(text)) horizons.push('20yr');
+    else if (/\b15.?yr|\b15.?year/i.test(text)) horizons.push('15yr');
+    else if (/\b10.?yr|\b10.?year/i.test(text)) horizons.push('10yr');
+    else if (/\b5.?yr|\b5.?year/i.test(text)) horizons.push('5yr');
+    else if (/\b1.?yr|\b1.?year/i.test(text)) horizons.push('1yr');
+    const seed = (typeof window.seedMultiplier !== 'undefined')
+      ? Math.round(1000 * window.seedMultiplier).toLocaleString()
+      : '1,000';
+    const horizonStr = horizons.length ? `over ${horizons[0]}` : 'across shown horizons';
+    return `Based on a $${seed} seed investment ${horizonStr}`;
+  }
+
+  function addBotMsg(text) {
+    const msg = el('div', 'chat-msg bot', body);
+    msg.innerHTML = formatBotText(text);
+
+    // Attempt to draw an inline chart
+    const chartData = extractChartData(text);
+    if (chartData) {
+      // Infer a chart title from the question context
+      const titleMatch = text.match(/top \d+|best \d+|worst \d+|ranked|comparison|compare/i);
+      const chartTitle = titleMatch ? titleMatch[0].replace(/\b\w/g, c => c.toUpperCase()) : 'Return Comparison';
+      const chartWrap = el('div', 'chat-chart-wrap', msg);
+      renderChatChart(chartWrap, chartData, chartTitle, getSeedNote(text));
+    }
+
+    // Scroll so the TOP of the new message is visible
+    msg.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    playBeep();
+  }
+
+  function addUserMsg(text) {
+    const msg = el('div', 'chat-msg user', body);
+    msg.textContent = text;
+    msg.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function showTyping(show) {
+    if (show) {
+      typingEl = el('div', 'chat-typing', body);
+      typingEl.innerHTML = '<span></span><span></span><span></span>';
+      body.scrollTop = body.scrollHeight;
+    } else if (typingEl) {
+      typingEl.remove();
+      typingEl = null;
+    }
+  }
+
+  function autoGrow() {
+    textarea.style.height = 'auto';
+    textarea.style.height = Math.min(textarea.scrollHeight, 110) + 'px';
+  }
+
+  function el(tag, cls, parent) {
+    const e = document.createElement(tag);
+    if (cls) e.className = cls.trim();
+    if (parent) parent.appendChild(e);
+    return e;
+  }
+
+  // ── Public API ───────────────────────────────────────────────
+  // Exposed so other scripts (e.g. app.js) can open the chat and fire a prompt programmatically.
+  window.openChatWithPrompt = function(promptText) {
+    if (!win) return; // not yet initialised
+    if (!isOpen) openChat();
+    // Small delay so the chat window is visible before the message appears
+    setTimeout(async () => {
+      if (isBlockedInput(promptText)) return;
+      lastUserQuestion = promptText;
+      addUserMsg(promptText);
+      pushHistory('user', promptText);
+      showTyping(true);
+      setTimeout(async () => {
+        showTyping(false);
+        let answer = null;
+        if (aiAvailable) answer = await fetchAIAnswer(promptText, chatHistory.slice(0, -1));
+        if (!answer) answer = answerFreeText(promptText);
+        addBotMsg(answer);
+        pushHistory('assistant', answer);
+        showFollowUpPills(generateFollowUps(promptText, answer));
+        resetInactivity();
+      }, 600 + Math.random() * 300);
+    }, 200);
+  };
+
+  // ── Bootstrap ────────────────────────────────────────────────
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();

@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ROI Master — $1,000 Seed Investment Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300..700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+
+<header class="header">
+  <div class="logo logo-hoverable" id="logoWrap">
+    <svg width="28" height="28" viewBox="0 0 28 28" fill="none" aria-label="ROI Master">
+      <rect width="28" height="28" rx="7" fill="currentColor" fill-opacity=".1"/>
+      <path d="M6 20 L10 13 L14 16 L20 8" stroke="var(--primary)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+      <circle cx="20" cy="8" r="2.5" fill="var(--gold)"/>
+    </svg>
+    <div class="logo-text-wrap">
+      <span class="logo-name">ROI Master</span>
+      <span class="logo-sub">Investment Dashboard</span>
+    </div>
+    <div class="logo-dropdown" id="logoDropdown">
+      <button class="logo-dropdown-item" onclick="openAboutModal()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        About
+      </button>
+    </div>
+  </div>
+  <div class="header-actions">
+    <div class="seed-wrap" title="Change seed amount — all values scale proportionally">
+      <span class="seed-label">Seed $</span>
+      <input type="number" id="seedInput" class="seed-input" value="1000" min="1" step="100" onchange="applySeed()">
+    </div>
+    <button class="btn btn-ghost btn-sm" id="resetDataBtn" onclick="resetToDefault()" style="display:none" title="Reset back to the default dataset">↺ Reset Data</button>
+    <div class="tooltip-wrap">
+      <button class="btn btn-ghost btn-sm" onclick="document.getElementById('csvFileInput').click()">⬆ Load Data</button>
+      <div class="tooltip-box">
+        <strong>CSV Format Required</strong>
+        Column order (row 1 = header):<br>
+        1. Asset/Company name<br>
+        2. Category<br>
+        3. 1Yr Value &nbsp;4. 1Yr Growth (x)<br>
+        5. 5Yr Value &nbsp;&nbsp;6. 5Yr Growth (x)<br>
+        7. 10Yr Value &nbsp;8. 10Yr Growth (x)<br>
+        9. 15Yr Value 10. 15Yr Growth (x)<br>
+        11. 20Yr Value 12. 20Yr Growth (x)<br>
+        <em>Values should be based on $1,000 seed</em>
+        <div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.15)">
+          <a href="#" onclick="downloadSampleCSV(event)" class="sample-csv-link">⬇ Download sample CSV</a>
+        </div>
+      </div>
+    </div>
+    <input type="file" id="csvFileInput" accept=".csv" style="display:none" onchange="loadCustomCSV(this)">
+    <button class="btn btn-ghost btn-sm" onclick="exportCSV()">⬇ Export CSV</button>
+    <button class="theme-btn" onclick="toggleTheme()" id="themeBtn" aria-label="Toggle theme">🌙</button>
+  </div>
+</header>
+
+<div class="layout">
+  <main class="main">
+    <div class="content">
+
+      <!-- Section Tabs -->
+      <div class="section-tabs" id="sectionTabs"></div>
+
+      <!-- KPI Carousel -->
+      <div class="kpi-carousel-wrap" onmouseenter="kpiPause()" onmouseleave="kpiResume()">
+        <div class="kpi-track" id="kpiTrack"></div>
+        <div class="kpi-nav">
+          <div class="kpi-dots" id="kpiDots"></div>
+          <button class="kpi-nav-btn" onclick="kpiPrev()" aria-label="Previous">‹</button>
+          <button class="kpi-nav-btn" onclick="kpiNext()" aria-label="Next">›</button>
+        </div>
+      </div>
+
+      <!-- Data info bar -->
+      <div class="data-info-bar" id="dataInfoBar">
+        <div class="data-file-name" id="dataFileName">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          Default Dataset — 300+ Assets
+        </div>
+        <div class="data-desc-static" id="dataDescStatic">Curated ROI data spanning 300+ global assets across Stocks, ETFs &amp; Funds, Commodities, and Real Estate — covering returns at 1, 5, 10, 15, and 20-year horizons. Easily add your own datasets via CSV upload.</div>
+        <input type="text" class="data-desc-input" id="dataDescInput" placeholder="Add a description for this dataset…" style="display:none" oninput="saveDesc()" />
+      </div>
+
+      <!-- Analytics Charts Grid -->
+      <div class="analytics-grid" id="analyticsGrid">
+
+        <div class="chart-mini" id="top10Card">
+          <div class="chart-mini-head">
+            <div style="flex:1;min-width:0">
+              <div class="chart-mini-title">Best Returns</div>
+              <div class="chart-mini-sub" id="top10Sub">Top 10 assets by value</div>
+            </div>
+            <div class="chart-mini-actions">
+              <div class="mini-range-tabs" id="top10RangeTabs">
+                <button class="mini-range-btn" data-yr="1" onclick="setTop10Range(1)">1Y</button>
+                <button class="mini-range-btn" data-yr="5" onclick="setTop10Range(5)">5Y</button>
+                <button class="mini-range-btn active" data-yr="10" onclick="setTop10Range(10)">10Y</button>
+                <button class="mini-range-btn" data-yr="15" onclick="setTop10Range(15)">15Y</button>
+                <button class="mini-range-btn" data-yr="20" onclick="setTop10Range(20)">20Y</button>
+              </div>
+              <button class="mini-expand-btn" id="top10ExpandBtn" onclick="toggleTop10Expand()" title="Expand chart">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+              </button>
+            </div>
+          </div>
+          <div class="chart-mini-body">
+            <div class="chart-mini-container"><canvas id="top10Chart"></canvas></div>
+          </div>
+        </div>
+
+        <div class="chart-mini" id="sectionCard">
+          <div class="chart-mini-head">
+            <div style="flex:1;min-width:0">
+              <div class="chart-mini-title">Returns by Asset Class</div>
+              <div class="chart-mini-sub" id="sectionSub">Median 10-year return per asset class</div>
+            </div>
+            <div class="chart-mini-actions">
+              <div class="mini-range-tabs" id="sectionRangeTabs">
+                <button class="mini-range-btn" data-yr="1" onclick="setSectionRange(1)">1Y</button>
+                <button class="mini-range-btn" data-yr="5" onclick="setSectionRange(5)">5Y</button>
+                <button class="mini-range-btn active" data-yr="10" onclick="setSectionRange(10)">10Y</button>
+                <button class="mini-range-btn" data-yr="15" onclick="setSectionRange(15)">15Y</button>
+                <button class="mini-range-btn" data-yr="20" onclick="setSectionRange(20)">20Y</button>
+              </div>
+            </div>
+          </div>
+          <div class="chart-mini-body">
+            <div class="chart-mini-container"><canvas id="sectionChart"></canvas></div>
+          </div>
+        </div>
+
+        <div class="chart-mini" id="heatmapCard">
+          <div class="chart-mini-head">
+            <div>
+              <div class="chart-mini-title">Avg Return Heatmap</div>
+              <div class="chart-mini-sub">Average value per asset class across time horizons</div>
+            </div>
+          </div>
+          <div class="chart-mini-body">
+            <div class="chart-mini-container" id="heatmapContainer" style="position:relative"></div>
+          </div>
+        </div>
+
+        <div class="chart-mini" id="scatterCard">
+          <div class="chart-mini-head">
+            <div>
+              <div class="chart-mini-title">Median Return by Horizon</div>
+              <div class="chart-mini-sub">Median value per asset class at each time horizon</div>
+            </div>
+          </div>
+          <div class="chart-mini-body">
+            <div class="chart-mini-container"><canvas id="scatterChart"></canvas></div>
+          </div>
+        </div>
+
+        <div class="chart-mini" id="catCountCard">
+          <div class="chart-mini-head">
+            <div style="flex:1;min-width:0">
+              <div class="chart-mini-title">Category Breakdown</div>
+              <div class="chart-mini-sub" id="catCountSub">Asset count by category (top 15)</div>
+            </div>
+            <div class="chart-mini-actions">
+              <div class="mini-range-tabs" id="catCountRangeTabs">
+                <button class="mini-range-btn" data-yr="1" onclick="setCatCountRange(1)">1Y</button>
+                <button class="mini-range-btn" data-yr="5" onclick="setCatCountRange(5)">5Y</button>
+                <button class="mini-range-btn active" data-yr="10" onclick="setCatCountRange(10)">10Y</button>
+                <button class="mini-range-btn" data-yr="15" onclick="setCatCountRange(15)">15Y</button>
+                <button class="mini-range-btn" data-yr="20" onclick="setCatCountRange(20)">20Y</button>
+              </div>
+            </div>
+          </div>
+          <div class="chart-mini-body">
+            <div class="chart-mini-container"><canvas id="catCountChart"></canvas></div>
+          </div>
+        </div>
+
+        <div class="chart-mini" id="catRoiCard">
+          <div class="chart-mini-head">
+            <div style="flex:1;min-width:0">
+              <div class="chart-mini-title">Top Categories by ROI</div>
+              <div class="chart-mini-sub" id="catRoiSub">Average 10-year return per category</div>
+            </div>
+            <div class="chart-mini-actions">
+              <div class="mini-range-tabs" id="catRoiRangeTabs">
+                <button class="mini-range-btn" data-yr="1" onclick="setCatRoiRange(1)">1Y</button>
+                <button class="mini-range-btn" data-yr="5" onclick="setCatRoiRange(5)">5Y</button>
+                <button class="mini-range-btn active" data-yr="10" onclick="setCatRoiRange(10)">10Y</button>
+                <button class="mini-range-btn" data-yr="15" onclick="setCatRoiRange(15)">15Y</button>
+                <button class="mini-range-btn" data-yr="20" onclick="setCatRoiRange(20)">20Y</button>
+              </div>
+            </div>
+          </div>
+          <div class="chart-mini-body cat-roi-body">
+            <div class="chart-mini-container cat-roi-container"><canvas id="catRoiChart"></canvas></div>
+          </div>
+        </div>
+
+      </div><!-- /analytics-grid -->
+      <!-- Floating tooltips -->
+      <div id="heatTip" class="heat-tip" style="display:none"></div>
+      <div id="kpiTipFloat" class="kpi-tip-float"></div>
+
+      <!-- ROI fullscreen slot — panel teleports here (above table) when expanded -->
+      <div id="roiFsSlot" class="roi-fs-slot" style="display:none"></div>
+
+      <!-- Table + ROI panel side-by-side -->
+      <div class="table-roi-wrap" id="tableRoiWrap">
+
+        <!-- Left: Toolbar + Table -->
+        <div class="table-col" id="tableCol">
+          <div class="toolbar">
+            <div class="search-wrap">
+              <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+              <input type="text" id="searchInput" placeholder="Search assets, categories…" oninput="onSearch()">
+            </div>
+            <div class="cat-multi-wrap" id="secMultiWrap" style="min-width:170px">
+              <button class="cat-multi-btn" id="secMultiBtn" onclick="toggleSecDropdown(event)">
+                <span id="secMultiLabel">All classes</span>
+                <span class="arrow">▼</span>
+              </button>
+              <div class="cat-dropdown" id="secDropdown">
+                <div class="cat-option all-opt" onclick="clearSecFilter(event)">
+                  <input type="checkbox" id="secAllChk" checked> All classes
+                </div>
+                <div id="secOptionsList"></div>
+              </div>
+            </div>
+            <div class="cat-multi-wrap" id="catMultiWrap" style="min-width:140px">
+              <button class="cat-multi-btn" id="catMultiBtn" onclick="toggleCatDropdown(event)">
+                <span id="catMultiLabel">All categories</span>
+                <span class="arrow">▼</span>
+              </button>
+              <div class="cat-dropdown" id="catDropdown">
+                <div class="cat-dropdown-search-wrap">
+                  <svg class="cat-dropdown-search-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                  <input type="text" id="catSearchInput" class="cat-dropdown-search" placeholder="Search categories…" oninput="filterCatDropdown()" onclick="event.stopPropagation()">
+                </div>
+                <div class="cat-option all-opt" id="catAllOpt" onclick="clearCatFilter(event)">
+                  <input type="checkbox" id="catAllChk" checked> All categories
+                </div>
+                <div id="catOptionsList"></div>
+              </div>
+            </div>
+            <div class="compare-badge">Selected: <strong id="compareCount">0</strong></div>
+          </div>
+
+          <div class="table-wrap">
+            <div class="table-scroll">
+              <table id="dataTable">
+                <thead><tr id="tableHead"></tr></thead>
+                <tbody id="tableBody"></tbody>
+              </table>
+            </div>
+            <div class="pagination" id="paginationBar"></div>
+          </div>
+        </div>
+
+        <!-- Right: ROI Growth panel (slides in when items are selected) -->
+        <div class="roi-panel" id="roiPanel">
+          <div class="chart-main-panel">
+            <div class="chart-head">
+              <div>
+                <div class="chart-title" id="chartTitle">ROI Growth</div>
+                <div class="chart-sub" id="chartSub">Click rows to chart · Select multiple to compare</div>
+              </div>
+              <div class="chart-actions" id="chartActions">
+                <button class="mini-expand-btn" id="roiFullscreenBtn" onclick="toggleRoiFullscreen()" title="Expand to full width" style="display:none">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+                </button>
+              </div>
+            </div>
+            <div class="timeline-bar" id="timelineBar">
+              <span class="timeline-label">Show up to:</span>
+              <button class="pg-btn timeline-btn" data-yrs="1" onclick="setTimeline(1)">1 Yr</button>
+              <button class="pg-btn timeline-btn" data-yrs="5" onclick="setTimeline(5)">5 Yr</button>
+              <button class="pg-btn timeline-btn" data-yrs="10" onclick="setTimeline(10)">10 Yr</button>
+              <button class="pg-btn timeline-btn" data-yrs="15" onclick="setTimeline(15)">15 Yr</button>
+              <button class="pg-btn timeline-btn" data-yrs="20" onclick="setTimeline(20)">20 Yr</button>
+            </div>
+            <div class="chart-body">
+              <div class="chart-container"><canvas id="roiChart"></canvas></div>
+              <div id="chartLegend"></div>
+              <div id="compareStatsWrap"></div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /table-roi-wrap -->
+
+    </div>
+  </main>
+</div>
+
+<footer class="site-footer">
+  <div class="site-footer-inner">
+    <span>ROI Master — A tool that lets you see growth across investments and asset classes with modern data visualisations and AI chat analysis.</span>
+    <span class="site-footer-sep">·</span>
+    <span>Made by <a href="https://www.qaunain.com" target="_blank" rel="noopener">Qaunain Meghjee</a></span>
+    <span class="site-footer-sep">·</span>
+    <a href="https://github.com/QaunainM/ROI-Master" target="_blank" rel="noopener">Clone on GitHub</a>
+  </div>
+</footer>
+
+<!-- About Modal -->
+<div class="about-overlay" id="aboutOverlay" role="dialog" aria-modal="true" aria-label="About ROI Master" style="display:none">
+  <div class="about-modal">
+    <button class="about-close" onclick="closeAboutModal()" aria-label="Close about">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+    <div class="about-content">
+      <div class="about-logo">
+        <svg width="40" height="40" viewBox="0 0 28 28" fill="none">
+          <rect width="28" height="28" rx="7" fill="currentColor" fill-opacity=".1"/>
+          <path d="M6 20 L10 13 L14 16 L20 8" stroke="var(--primary)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="20" cy="8" r="2.5" fill="var(--gold)"/>
+        </svg>
+        <div class="about-logo-text">
+          <h1 class="about-title">ROI Master</h1>
+          <p class="about-tagline">See growth across investments and asset classes with modern data visualisations and AI chat analysis.</p>
+        </div>
+      </div>
+
+      <div class="about-section">
+        <h2>What is ROI Master?</h2>
+        <p>A fully client-side investment analysis dashboard covering 300+ global assets across Stocks, ETFs, Commodities, and Real Estate — with returns at 1, 5, 10, 15, and 20-year horizons. Easily add your own datasets. No login, no backend, no tracking. Just data.</p>
+        <p class="about-highlight-line">The AI chat assistant doesn't just answer your questions — it <strong>generates real charts live, inside the conversation</strong>, the moment it spots ranked or comparable data in its own response.</p>
+      </div>
+
+      <div class="about-section about-features-grid">
+        <div class="about-feature">
+          <div class="about-feature-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          </div>
+          <div>
+            <strong>7 Interactive Charts</strong>
+            <span>Bar, heatmap, donut, line &amp; scatter visualisations</span>
+          </div>
+        </div>
+        <div class="about-feature">
+          <div class="about-feature-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          </div>
+          <div>
+            <strong>AI Chat That Draws Its Own Charts</strong>
+            <span>Ask a question — the AI answers in plain English <em>and</em> renders a live bar chart right inside the chat bubble, on the fly</span>
+          </div>
+        </div>
+        <div class="about-feature">
+          <div class="about-feature-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+          </div>
+          <div>
+            <strong>300+ Assets</strong>
+            <span>Stocks, ETFs, Commodities, Real Estate — easily add your own</span>
+          </div>
+        </div>
+        <div class="about-feature">
+          <div class="about-feature-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+          </div>
+          <div>
+            <strong>Open Source</strong>
+            <span>MIT licensed — fork, adapt, and deploy freely</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="about-section about-creator">
+        <img src="Images/qaunain-meghjee.jpg" alt="Qaunain Meghjee" class="about-creator-avatar about-creator-photo">
+        <div class="about-creator-info">
+          <h2>Made by Qaunain Meghjee</h2>
+          <p>As someone who invests across multiple asset classes, I needed a clear way to visualise long-term growth and compare ROI statistics side by side — so I built ROI Master.</p>
+          <p>15 years of experience launching products across AI, web, mobile, eCommerce, SaaS, API platforms, and IoT. Helping companies implement AI and ML since 2016.</p>
+          <div class="about-creator-links">
+            <a href="https://www.qaunain.com" target="_blank" rel="noopener" class="about-link-btn">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+              Website
+            </a>
+            <a href="https://www.linkedin.com/in/qaunainm/" target="_blank" rel="noopener" class="about-link-btn">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>
+              LinkedIn
+            </a>
+            <a href="https://github.com/QaunainM/ROI-Master" target="_blank" rel="noopener" class="about-link-btn">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
+              GitHub
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <div class="about-footer-note">
+        ROI Master is open source and free to use. <a href="https://github.com/QaunainM/ROI-Master" target="_blank" rel="noopener">Fork it on GitHub</a> and build your own version.
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="data.js"></script>
+<script src="app.js"></script>
+<script src="chat.js"></script>
+<script>
+  // About modal
+  function openAboutModal() {
+    const overlay = document.getElementById('aboutOverlay');
+    overlay.style.display = 'flex';
+    requestAnimationFrame(() => overlay.classList.add('about-overlay-visible'));
+    history.pushState({ about: true }, '', '/about');
+    document.addEventListener('keydown', _aboutEscHandler);
+  }
+  function closeAboutModal() {
+    const overlay = document.getElementById('aboutOverlay');
+    overlay.classList.remove('about-overlay-visible');
+    overlay.addEventListener('transitionend', () => { overlay.style.display = 'none'; }, { once: true });
+    if (location.pathname === '/about') history.pushState({}, '', '/');
+    document.removeEventListener('keydown', _aboutEscHandler);
+  }
+  function _aboutEscHandler(e) { if (e.key === 'Escape') closeAboutModal(); }
+  document.getElementById('aboutOverlay').addEventListener('click', function(e) {
+    if (e.target === this) closeAboutModal();
+  });
+  // Handle direct /about URL or redirect unknown paths to /
+  const _path = location.pathname;
+  if (_path === '/about') {
+    openAboutModal();
+  } else if (_path !== '/' && _path !== '/index.html') {
+    history.replaceState({}, '', '/');
+  }
+  // Handle browser back
+  window.addEventListener('popstate', function(e) {
+    if (location.pathname !== '/about') closeAboutModal();
+  });
+</script>
+</body>
+</html>

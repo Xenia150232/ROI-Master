@@ -959,13 +959,17 @@ function triggerCompareAI(){
   if(!names.length)return;
   const seed='$'+(Math.round(1000*(window.seedMultiplier||1))).toLocaleString();
 
+  // Look up the actual asset objects so the AI gets exact data (bypasses keyword matching)
+  const nameSet=new Set(names);
+  const pinnedAssets=allData.filter(r=>nameSet.has(r.name));
+
   // Clean label shown in the chat bubble
   const displayText=`Compare ${names.length} selected assets (${seed} seed)`;
 
-  // Detailed prompt sent to the AI
-  const aiPrompt=`Compare these ${names.length} assets against each other across all available time horizons (1Y, 5Y, 10Y, 15Y, 20Y) based on a ${seed} seed investment: ${names.join(', ')}. For each time horizon state which asset performed best and worst with the values. Then give an overall ranking (#1 to #${names.length}) with a brief reason for each position. Use bold for asset names and values.`;
+  // Detailed prompt — names listed so AI knows exactly what to compare
+  const aiPrompt=`You have been given the full data for these ${names.length} specifically selected assets in the RELEVANT ASSETS section: ${names.join(', ')}. Compare ONLY these assets against each other across all available time horizons (1Y, 5Y, 10Y, 15Y, 20Y) based on a ${seed} seed investment. For each time horizon state which asset performed best and worst with the exact values. Then give an overall ranking from #1 to #${names.length} with a brief reason for each position. Do NOT reference any assets outside this list.`;
 
-  window.openChatWithPrompt(displayText, aiPrompt);
+  window.openChatWithPrompt(displayText, aiPrompt, pinnedAssets);
 }
 
 // ===== MINI CHARTS =====

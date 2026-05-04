@@ -412,10 +412,13 @@
     return clean.trim() || null;
   }
 
-  async function fetchAIAnswer(message, history) {
+  // pinnedAssets: optional array of asset objects to use directly (bypasses keyword matching)
+  async function fetchAIAnswer(message, history, pinnedAssets) {
     try {
       const assets = getAssets();
-      const assetContext = assets ? buildAssetContext(message, assets) : null;
+      const assetContext = assets
+        ? (pinnedAssets ? buildPinnedContext(pinnedAssets, assets) : buildAssetContext(message, assets))
+        : null;
 
       // Send last 8 exchanges (16 messages) for context without bloating the request
       const conversationHistory = (history || []).slice(-16);
@@ -518,6 +521,31 @@
       v10: asset.v10, g10: asset.g10,
       v15: asset.v15, g15: asset.g15,
       v20: asset.v20, g20: asset.g20,
+    };
+  }
+
+  // Build context using a specific pre-selected list of asset objects (for compare flow)
+  function buildPinnedContext(pinnedAssets, allAssets) {
+    const relevantAssets = pinnedAssets.map(pickAssetFields);
+    const allAssetNames = allAssets.map(a => a.name).filter(Boolean);
+    const assetClasses = [...new Set(allAssets.map(a => a.section || a.category || a.cat || 'Unknown'))];
+    const avg = (yr) => {
+      const vals = allAssets.map(a => a['v' + yr]).filter(v => v && !isNaN(v)).map(Number);
+      if (!vals.length) return 'N/A';
+      return '$' + Math.round(vals.reduce((s, v) => s + v, 0) / vals.length).toLocaleString();
+    };
+    const topByReturn = [...allAssets]
+      .filter(a => a.v10 && !isNaN(a.v10))
+      .sort((a, b) => b.v10 - a.v10)
+      .slice(0, 10)
+      .map(a => ({ name: a.name, v10: a.v10, g10: a.g10 }));
+    return {
+      totalAssets: allAssets.length,
+      assetClasses,
+      allAssetNames,
+      relevantAssets,
+      topByReturn,
+      datasetSummary: { avg1yr: avg(1), avg5yr: avg(5), avg10yr: avg(10) },
     };
   }
 
@@ -1409,12 +1437,16 @@
 
   // ── Public API ───────────────────────────────────────────────
   // Exposed so other scripts (e.g. app.js) can open the chat and fire a prompt programmatically.
-  window.openChatWithPrompt = async function(displayText, promptText) {
+  // pinnedAssets: optional array of raw asset objects to use as context (bypasses keyword matching)
+  window.openChatWithPrompt = async function(displayText, promptText, pinnedAssets) {
     if (!win) return; // not yet initialised
-    if (!isOpen) openChat();
     // Use promptText as the AI query if provided; displayText is shown in the bubble
     const aiQuery = promptText || displayText;
     const userDisplay = displayText || promptText;
+
+    // Defer past the current click event so the click-outside handler doesn't immediately close us
+    await new Promise(r => setTimeout(r, 50));
+    if (!isOpen) openChat();
 
     // Small delay so the chat window renders before message appears
     await new Promise(r => setTimeout(r, 150));
@@ -1427,7 +1459,7 @@
     setSendDisabled(true);
 
     let answer = null;
-    if (aiAvailable) answer = await fetchAIAnswer(aiQuery, chatHistory.slice(0, -1));
+    if (aiAvailable) answer = await fetchAIAnswer(aiQuery, chatHistory.slice(0, -1), pinnedAssets || null);
     if (!answer) answer = answerFreeText(aiQuery);
 
     showTyping(false);

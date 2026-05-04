@@ -5,6 +5,7 @@
 # Extend function timeout for AI thinking-mode responses (DeepSeek reasoning can take 15-25s)
 [functions]
   node_bundler = "esbuild"
+  external_node_modules = ["@netlify/blobs"]
 
 [functions."chat-ai"]
   # Max 26s on Netlify free tier — generous budget for LLM reasoning chains

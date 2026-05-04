@@ -6,49 +6,25 @@
   If the variable is not set, returns { ai_available: false } so
   the frontend can fall back to the local regex engine.
 
-  IP Rate Limiting via Supabase:
+  IP Rate Limiting via Netlify Blobs:
   Each IP address is limited to DAILY_LIMIT AI calls per UTC day.
   The limit resets automatically at midnight UTC each day.
-  IP addresses are stored as SHA-256 hashes — never in raw form.
 
   To swap the AI provider, update LLM_API_URL and MODEL below.
   Any provider that implements the OpenAI /v1/chat/completions
   format will work (OpenAI, Mistral, Groq, Together AI, etc.).
 */
 
-const crypto = require('crypto');
+const { getStore, connectLambda } = require('@netlify/blobs');
 
 const LLM_API_URL = process.env.LLM_API_URL || 'https://api.deepseek.com/v1/chat/completions';
 const MODEL = process.env.LLM_MODEL || 'deepseek-v4-flash';
 const MAX_TOKENS = 1600;
-// DeepSeek V4 uses reasoning_effort ("none"|"high"|"max") — NOT the Claude-style thinking block
 const REASONING_EFFORT = 'high';
-
 const DAILY_LIMIT = 30;
 
-const SUPABASE_URL  = process.env.SUPABASE_URL  || process.env.VITE_SUPABASE_URL;
-const SUPABASE_KEY  = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
-
-function hashIp(ip) {
-  return crypto.createHash('sha256').update(ip).digest('hex');
-}
-
-// Call a Supabase RPC function via the REST API
-async function supabaseRpc(fnName, params) {
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${fnName}`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'apikey': SUPABASE_KEY,
-      'Authorization': `Bearer ${SUPABASE_KEY}`,
-    },
-    body: JSON.stringify(params),
-  });
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`Supabase RPC ${fnName} failed: ${res.status} ${text}`);
-  }
-  return res.json();
+function utcDateKey() {
+  return new Date().toISOString().slice(0, 10);
 }
 
 exports.handler = async function (event) {
@@ -88,6 +64,9 @@ exports.handler = async function (event) {
     return { statusCode: 400, headers, body: JSON.stringify({ error: 'message is required' }) };
   }
 
+  // ── Initialize Netlify Blobs for Lambda-compatible functions ─────────────
+  connectLambda(event);
+
   // ── Resolve client IP ────────────────────────────────────────────────────
   const clientIp = (
     event.headers['x-nf-client-connection-ip'] ||
@@ -95,20 +74,19 @@ exports.handler = async function (event) {
     event.headers['client-ip'] ||
     'unknown'
   ).split(',')[0].trim();
-  const ipHash = clientIp !== 'unknown' ? hashIp(clientIp) : null;
 
   // ── Ping check (probe from frontend — read-only, don't count against limit) ─
   const isPing = message === '__ping__';
   if (isPing) {
     let remaining = DAILY_LIMIT;
-    if (ipHash && SUPABASE_URL && SUPABASE_KEY) {
+    if (clientIp !== 'unknown') {
       try {
-        const result = await supabaseRpc('get_ip_rate_limit', {
-          p_ip_hash: ipHash,
-          p_daily_limit: DAILY_LIMIT,
-        });
-        remaining = result.remaining ?? DAILY_LIMIT;
-      } catch { /* non-critical — return full limit on error */ }
+        const store = getStore('chat-rate-limits');
+        const record = await store.get(clientIp, { type: 'json' });
+        if (record && record.date === utcDateKey()) {
+          remaining = Math.max(0, DAILY_LIMIT - (record.count || 0));
+        }
+      } catch { /* non-critical */ }
     }
     return {
       statusCode: 200,
@@ -117,21 +95,30 @@ exports.handler = async function (event) {
     };
   }
 
-  // ── IP Rate Limiting — atomic increment via Supabase RPC ─────────────────
+  // ── IP Rate Limiting via Netlify Blobs ──────────────────────────────────
   let remainingCalls = DAILY_LIMIT;
   let rateLimitOk = true;
 
-  if (ipHash && SUPABASE_URL && SUPABASE_KEY) {
+  if (clientIp !== 'unknown') {
     try {
-      const result = await supabaseRpc('increment_ip_rate_limit', {
-        p_ip_hash: ipHash,
-        p_daily_limit: DAILY_LIMIT,
-      });
-      rateLimitOk = result.allowed !== false;
-      remainingCalls = result.remaining ?? 0;
+      const store = getStore('chat-rate-limits');
+      const today = utcDateKey();
+      const record = await store.get(clientIp, { type: 'json' });
+
+      let count = 0;
+      if (record && record.date === today) {
+        count = record.count || 0;
+      }
+
+      if (count >= DAILY_LIMIT) {
+        rateLimitOk = false;
+        remainingCalls = 0;
+      } else {
+        await store.setJSON(clientIp, { date: today, count: count + 1 });
+        remainingCalls = Math.max(0, DAILY_LIMIT - (count + 1));
+      }
     } catch (e) {
-      // Supabase unavailable — allow request through rather than blocking users
-      console.warn('Rate limit error:', e.message);
+      console.warn('Rate limit store error:', e);
     }
   }
 

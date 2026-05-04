@@ -1117,16 +1117,21 @@
 
       closeList();
 
-      // Section header  "### text" or "## text"
+      // Markdown heading  "### text" or "## text"
       const hMatch = line.match(/^#{1,3}\s+(.+)/);
       if (hMatch) { html += `<div class="chat-section-head">${inlineFormat(hMatch[1])}</div>`; return; }
 
-      // Key: value pattern  "Label: value"
-      const kvMatch = line.match(/^([^:]{2,30}):\s+(.+)/);
-      if (kvMatch) {
-        html += `<div class="chat-kv"><span class="chat-kv-key">${inlineFormat(kvMatch[1])}:</span> <span class="chat-kv-val">${inlineFormat(kvMatch[2])}</span></div>`;
+      // Standalone label ending with colon — e.g. "Top 5 assets by 10-year return:"
+      // Must be a short line (≤60 chars), no sentence punctuation mid-line, no $ value
+      const labelOnly = line.match(/^([^:$\n]{4,55}):$/);
+      if (labelOnly && !/[.,;]/.test(labelOnly[1])) {
+        html += `<div class="chat-section-head">${inlineFormat(labelOnly[1])}:</div>`;
         return;
       }
+
+      // Lines that are ONLY bold text (e.g. "**Key Point**") — render as a mini heading
+      const boldOnly = line.match(/^\*\*([^*]+)\*\*[.:—–]?\s*$/);
+      if (boldOnly) { html += `<div class="chat-section-head">${boldOnly[1]}</div>`; return; }
 
       html += `<p class="chat-p">${inlineFormat(line)}</p>`;
     });

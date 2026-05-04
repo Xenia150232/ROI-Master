@@ -15,6 +15,7 @@ A fully client-side investment analysis dashboard that lets you visualise, compa
 
 - **300+ pre-loaded assets** across Stocks, ETFs & Funds, Commodities, and Real Estate — easily add your own datasets
 - **Adjustable seed value** — change the initial investment amount and all figures update instantly
+- **Analyse with AI** — hover any KPI tile or any of the 6 data visualisations and a blue **Analyse with AI** button appears. Clicking it fires a pre-built, context-aware question directly into the chatbot — no typing needed. The question automatically reflects the active section, selected time horizon, and current data state
 - **KPI Tiles** — scrolling carousel of at-a-glance performance stats including:
   - Best 1Y, 5Y, 10Y, 15Y, and 20Y performer with name and return value
   - 10x Club, 25x Club, and 50x Club — counts of assets that hit each multiplier threshold
@@ -37,6 +38,7 @@ A fully client-side investment analysis dashboard that lets you visualise, compa
 - **AI Chat Assistant — answers in words *and* draws its own charts live** — ask a question and the assistant responds in plain English, then automatically renders a real bar chart right inside the chat bubble whenever the answer contains ranked or comparable data. No button to press, no separate view — the chart appears as part of the reply, on the fly:
   - **Live in-chat chart generation** — Canvas-rendered horizontal bar chart injected directly into the message bubble for any ranked list, top-N result, or multi-asset comparison the AI produces
   - **Comparison charts** — side-by-side bars when the answer contrasts two groups (e.g. Asia vs Europe returns across time horizons)
+  - **Voice readout (Web Speech API)** — every AI reply is read aloud using the browser's built-in `SpeechSynthesis` API with a prioritised natural female voice (Samantha, Google UK English Female, Karen, and others). A speaker icon in the chat header lets users mute/unmute at any time; the preference is saved to `localStorage` between visits
   - Auto-suggested follow-up questions — 6 contextual pills after every response, derived from the specific assets and topics in the answer
   - Persistent chat history — conversation is saved to localStorage and restored on return visits, with full chart replay
   - Full awareness of all 7 dashboard visualisations — ask "what does the scatter plot show?" and get a data-driven description
@@ -80,11 +82,13 @@ The built-in chat widget operates in two modes:
 
 ### Chat features
 
-- **Live in-chat charts** — the single most distinctive feature: whenever the AI's response contains a ranked list, a top-N comparison, or a side-by-side group breakdown, a Canvas-rendered horizontal bar chart is drawn automatically inside the message bubble — no button, no modal, no separate tab. The chart is generated from the text of the reply itself, on the fly, every time
-- **Comparison charts** — when the AI contrasts two groups (e.g. Asia vs Europe across three time horizons), the chart interleaves bars from both sides so the comparison is instantly visual
-- **Follow-up pills** — after every response, 6 contextual follow-up question suggestions appear as clickable pills, derived from the specific asset names, categories, and time horizons in the conversation — not generic suggestions
-- **Persistent history** — the full conversation (text and chart data) is saved to localStorage and restored when you return, so you never lose context between sessions
-- **Visualisation awareness** — the chatbot knows the names and purpose of all 7 dashboard charts and can describe what each shows
+- **Analyse with AI buttons** — every KPI tile and every data visualisation has a hover-triggered **Analyse with AI** button. One click fires a contextual, pre-built question into the chat — no typing required. The question automatically incorporates the active section, selected time horizon, and current data state
+- **Live in-chat charts** — whenever the AI's response contains a ranked list, top-N comparison, or side-by-side group breakdown, a Canvas-rendered horizontal bar chart is drawn automatically inside the message bubble — no button, no modal, no separate tab
+- **Comparison charts** — when the AI contrasts two groups (e.g. Asia vs Europe across time horizons), the chart interleaves bars from both sides so the comparison is instantly visual
+- **Voice readout (Web Speech API)** — each bot reply is spoken aloud via the browser's native `SpeechSynthesis` API. The voice picker prioritises natural, warm female voices (Samantha, Google UK English Female, Karen, etc.). A speaker icon in the chat header lets users mute/unmute; preference persists via `localStorage`
+- **Follow-up pills** — after every response, 6 contextual follow-up questions appear as clickable pills derived from the specific assets, categories, and time horizons mentioned in the reply
+- **Persistent history** — the full conversation is saved to localStorage and restored on return, with charts replayed from stored data
+- **Visualisation awareness** — the chatbot knows the names and purpose of all 7 dashboard charts and describes what each shows using live dataset figures
 - **Guardrails** — three layers of protection: client-side input blocking, server-side pattern matching, and a hardened system prompt that enforces read-only behaviour and resists prompt injection
 
 ### Enabling AI on your own Netlify deployment
@@ -227,6 +231,7 @@ Gold ETF (GLD),Commodities,1080,1.08,1350,1.35,1820,1.82,2400,2.40,3200,3.20
 | Logic | Vanilla JavaScript (ES2020) |
 | Charts | <a href="https://www.chartjs.org/" target="_blank">Chart.js 4</a> via CDN |
 | In-chat charts | Canvas API (no dependencies) |
+| Voice readout | Web Speech API (`SpeechSynthesis`) — built into modern browsers, no library needed |
 | Fonts | Inter (Google Fonts) |
 | AI Chat | OpenAI-compatible LLM API via Netlify Functions |
 | Dev server | <a href="https://vitejs.dev/" target="_blank">Vite</a> (optional) |

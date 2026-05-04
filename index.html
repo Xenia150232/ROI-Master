@@ -37,7 +37,7 @@
     </div>
     <button class="btn btn-ghost btn-sm" id="resetDataBtn" onclick="resetToDefault()" style="display:none" title="Reset back to the default dataset">↺ Reset Data</button>
     <div class="tooltip-wrap">
-      <button class="btn btn-ghost btn-sm" onclick="document.getElementById('csvFileInput').click()">⬆ Load Data</button>
+      <button class="btn btn-ghost btn-sm btn-load-data" onclick="document.getElementById('csvFileInput').click()">⬆ Load Data</button>
       <div class="tooltip-box">
         <strong>CSV Format Required</strong>
         Column order (row 1 = header):<br>
@@ -55,7 +55,25 @@
       </div>
     </div>
     <input type="file" id="csvFileInput" accept=".csv" style="display:none" onchange="loadCustomCSV(this)">
-    <button class="btn btn-ghost btn-sm" onclick="exportCSV()">⬇ Export CSV</button>
+    <button class="btn btn-ghost btn-sm btn-export-csv" onclick="exportCSV()">⬇ Export CSV</button>
+    <!-- Mobile portrait: collapsed Data dropdown -->
+    <div class="data-menu-wrap" id="dataMenuWrap">
+      <button class="data-menu-btn" id="dataMenuBtn" onclick="toggleDataMenu()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        Data
+        <span class="data-menu-arrow">▾</span>
+      </button>
+      <div class="data-menu-dropdown" id="dataMenuDropdown">
+        <button class="data-menu-item" onclick="document.getElementById('csvFileInput').click();closeDataMenu()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>
+          Load Data
+        </button>
+        <button class="data-menu-item" onclick="exportCSV();closeDataMenu()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="8 17 12 21 16 17"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.88 18.09A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.29"/></svg>
+          Export CSV
+        </button>
+      </div>
+    </div>
     <button class="theme-btn" onclick="toggleTheme()" id="themeBtn" aria-label="Toggle theme">🌙</button>
   </div>
 </header>

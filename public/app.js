@@ -1635,6 +1635,22 @@ function hideHeatTip(){
   if(tip) tip.style.display='none';
 }
 
+// ===== MOBILE DATA MENU =====
+function toggleDataMenu(){
+  const btn=document.getElementById('dataMenuBtn');
+  const dd=document.getElementById('dataMenuDropdown');
+  const open=dd.classList.toggle('open');
+  btn.classList.toggle('open',open);
+}
+function closeDataMenu(){
+  document.getElementById('dataMenuBtn')?.classList.remove('open');
+  document.getElementById('dataMenuDropdown')?.classList.remove('open');
+}
+document.addEventListener('click',function(e){
+  const wrap=document.getElementById('dataMenuWrap');
+  if(wrap && !wrap.contains(e.target)) closeDataMenu();
+});
+
 // ===== THEME =====
 function toggleTheme(){
   const cur=document.documentElement.getAttribute('data-theme');

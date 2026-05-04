@@ -463,6 +463,18 @@ input[type=checkbox]{accent-color:var(--primary);width:15px;height:15px;cursor:p
 .chart-placeholder{display:flex;flex-direction:column;align-items:center;justify-content:center;height:200px;color:var(--faint);font-size:13px;gap:10px;text-align:center}
 .chart-placeholder svg{opacity:.3}
 
+/* MOBILE DATA DROPDOWN — shown only on portrait phones/tablets */
+.data-menu-wrap{position:relative;display:none}
+.data-menu-btn{display:flex;align-items:center;gap:5px;padding:5px 11px;border-radius:var(--radius);font-size:12px;font-weight:500;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--muted);font-family:var(--font);transition:all 150ms;white-space:nowrap}
+.data-menu-btn:hover,.data-menu-btn.open{border-color:var(--primary);color:var(--text);background:var(--surface2)}
+.data-menu-btn .data-menu-arrow{font-size:9px;transition:transform 200ms}
+.data-menu-btn.open .data-menu-arrow{transform:rotate(180deg)}
+.data-menu-dropdown{display:none;position:absolute;top:calc(100% + 4px);right:0;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:0 8px 24px rgba(0,0,0,.12);min-width:160px;padding:6px;z-index:200}
+.data-menu-dropdown.open{display:block}
+.data-menu-item{display:flex;align-items:center;gap:8px;width:100%;padding:8px 12px;border:none;background:transparent;border-radius:6px;font-size:13px;font-weight:500;color:var(--text);cursor:pointer;font-family:var(--font);transition:background 120ms;text-align:left}
+.data-menu-item:hover{background:var(--primary-bg);color:var(--primary)}
+[data-theme="dark"] .data-menu-dropdown{box-shadow:0 8px 24px rgba(0,0,0,.4)}
+
 /* MOBILE */
 @media(max-width:1100px){
   .table-roi-wrap.panel-open{flex-direction:column}
@@ -488,6 +500,16 @@ input[type=checkbox]{accent-color:var(--primary);width:15px;height:15px;cursor:p
   #analyticsGrid.top10-expanded{grid-template-columns:1fr !important}
   #analyticsGrid > .chart-mini,
   #analyticsGrid.top10-expanded > .chart-mini{grid-column:1 / -1 !important;grid-row:auto !important}
+
+  /* Show data dropdown, hide individual Load/Export buttons */
+  .data-menu-wrap{display:block}
+  .btn-load-data,.btn-export-csv{display:none !important}
+
+  /* Data info bar — stack title above description to save vertical space */
+  .data-info-bar{flex-direction:column;align-items:flex-start;gap:4px;padding:10px 14px}
+  .data-file-name{font-size:12px}
+  .data-desc-static{flex:none;width:100%;font-size:11px;line-height:1.4}
+  .data-desc-input{min-width:0;width:100%}
 }
 ::-webkit-scrollbar{width:5px;height:5px}
 ::-webkit-scrollbar-track{background:transparent}

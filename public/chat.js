@@ -51,6 +51,70 @@
     { label: 'Other',                key: 'other' },
   ];
 
+  // ── TTS (Web Speech API) ─────────────────────────────────────
+  let ttsEnabled = false;
+  let ttsVoice = null;
+  let muteBtn = null;
+
+  const ICON_SOUND = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>`;
+  const ICON_MUTE  = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>`;
+
+  function initTTS() {
+    if (!window.speechSynthesis) return;
+    // Restore mute preference
+    try { if (localStorage.getItem('roi_tts_muted') === '1') ttsEnabled = false; else ttsEnabled = true; } catch(_) { ttsEnabled = true; }
+    // Pick best female voice — prefer natural/neural names, prefer en-GB/en-AU for warmth
+    function pickVoice() {
+      const voices = window.speechSynthesis.getVoices();
+      if (!voices.length) return;
+      const PREF = [
+        v => /samantha/i.test(v.name),
+        v => /google uk english female/i.test(v.name),
+        v => /karen/i.test(v.name),
+        v => /moira/i.test(v.name),
+        v => /serena/i.test(v.name),
+        v => /victoria/i.test(v.name),
+        v => /tessa/i.test(v.name),
+        v => /fiona/i.test(v.name),
+        v => /female/i.test(v.name) && /en/i.test(v.lang),
+        v => /en-GB/i.test(v.lang),
+        v => /en-AU/i.test(v.lang),
+        v => /en/i.test(v.lang),
+      ];
+      for (const test of PREF) {
+        const match = voices.find(test);
+        if (match) { ttsVoice = match; return; }
+      }
+      ttsVoice = voices[0];
+    }
+    pickVoice();
+    if (!ttsVoice) window.speechSynthesis.onvoiceschanged = pickVoice;
+  }
+
+  function ttsSpeak(text) {
+    if (!ttsEnabled || !window.speechSynthesis) return;
+    window.speechSynthesis.cancel();
+    // Strip markdown formatting before speaking
+    const plain = text
+      .replace(/\*\*(.+?)\*\*/g, '$1')
+      .replace(/\*(.+?)\*/g, '$1')
+      .replace(/#+\s*/g, '')
+      .replace(/[-•]\s+/g, '')
+      .replace(/\d+\.\s+/g, '')
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+      .replace(/`[^`]+`/g, '')
+      .replace(/\n{2,}/g, '. ')
+      .replace(/\n/g, ' ')
+      .trim();
+    if (!plain) return;
+    const utt = new SpeechSynthesisUtterance(plain);
+    if (ttsVoice) utt.voice = ttsVoice;
+    utt.rate = 1.05;
+    utt.pitch = 1.1;
+    utt.volume = 0.9;
+    window.speechSynthesis.speak(utt);
+  }
+
   // ── DOM refs ─────────────────────────────────────────────────
   let fab, win, body, pillsSection, inputRow, textarea, sendBtn, aiIndicator, aiTooltip;
   let isOpen = false;
@@ -76,6 +140,7 @@
   // ── Init ─────────────────────────────────────────────────────
   function init() {
     loadHistory();
+    initTTS();
     buildDOM();
     attachEvents();
     setTimeout(() => fab.classList.add('ready'), 800);
@@ -175,6 +240,20 @@
       clearHistory();
       body.innerHTML = '';
       showWelcome();
+    });
+
+    // TTS mute toggle
+    muteBtn = el('button', 'chat-header-mute', header);
+    muteBtn.title = ttsEnabled ? 'Mute voice' : 'Unmute voice';
+    muteBtn.setAttribute('aria-label', muteBtn.title);
+    muteBtn.innerHTML = ttsEnabled ? ICON_SOUND : ICON_MUTE;
+    muteBtn.addEventListener('click', () => {
+      ttsEnabled = !ttsEnabled;
+      muteBtn.innerHTML = ttsEnabled ? ICON_SOUND : ICON_MUTE;
+      muteBtn.title = ttsEnabled ? 'Mute voice' : 'Unmute voice';
+      muteBtn.setAttribute('aria-label', muteBtn.title);
+      if (!ttsEnabled && window.speechSynthesis) window.speechSynthesis.cancel();
+      try { localStorage.setItem('roi_tts_muted', ttsEnabled ? '0' : '1'); } catch(_) {}
     });
 
     const closeBtn = el('button', 'chat-header-close', header);
@@ -1439,6 +1518,7 @@
     // Scroll so the TOP of the new message is visible
     msg.scrollIntoView({ behavior: 'smooth', block: 'start' });
     playBeep();
+    ttsSpeak(text);
   }
 
   function addUserMsg(text) {

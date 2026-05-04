@@ -191,7 +191,7 @@ function buildKPICards(d){
 
   function encodeAssets(arr){ return encodeURIComponent(JSON.stringify(arr)); }
 
-  const AI_BTN = `<button class="ai-analyse-btn" onclick="event.stopPropagation();kpiAiClick(this)" tabindex="-1"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20z"/><path d="M12 8v4l3 3"/></svg>Analyse with AI</button>`;
+  const AI_FOOTER = `<div class="ai-analyse-footer"><button class="ai-analyse-btn" onclick="event.stopPropagation();kpiAiClick(this)" tabindex="-1"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>Analyse with AI</button></div>`;
 
   const card=(icon,label,val,sub,accent='var(--primary)',tip='',assets=[])=>{
     const tipAttr=tip?` data-kpi-tip="${tip.replace(/"/g,'&quot;')}"`:''
@@ -203,7 +203,7 @@ function buildKPICards(d){
       <div class="kpi-label">${label}</div>
       <div class="kpi-value" style="color:${accent}">${val}</div>
       <div class="kpi-sub">${sub}</div>
-      ${AI_BTN}
+      ${AI_FOOTER}
     </div>`;
   };
 

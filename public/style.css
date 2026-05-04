@@ -334,30 +334,38 @@ input[type=checkbox]{accent-color:var(--primary);width:15px;height:15px;cursor:p
 .mini-expand-btn:hover{border-color:var(--primary);color:var(--primary)}
 .mini-expand-btn.expanded{background:var(--primary-bg);border-color:var(--primary);color:var(--primary)}
 
-/* AI Analyse hover button — appears on KPI cards and chart cards */
+/* AI Analyse hover footer — sits below chart body / KPI content, never overlaps */
+.ai-analyse-footer{
+  height:0;overflow:hidden;
+  display:flex;align-items:center;justify-content:center;
+  transition:height 160ms ease,padding 160ms ease;
+  padding:0;
+}
+.chart-mini:hover .ai-analyse-footer,
+.kpi-card:hover .ai-analyse-footer{
+  height:36px;
+  padding:4px 0 6px;
+}
 .ai-analyse-btn{
-  position:absolute;bottom:10px;right:10px;
   display:flex;align-items:center;gap:5px;
-  padding:5px 11px;
+  padding:5px 14px;
   font-size:11px;font-weight:700;letter-spacing:.04em;
   color:#fff;
   background:var(--primary);
   border:none;border-radius:20px;
   cursor:pointer;
-  box-shadow:0 2px 8px rgba(37,99,235,.35);
+  box-shadow:0 2px 8px rgba(37,99,235,.3);
   opacity:0;pointer-events:none;
-  transform:translateY(4px);
-  transition:opacity 160ms ease,transform 160ms ease;
+  transform:translateY(3px);
+  transition:opacity 160ms ease,transform 160ms ease,background 120ms;
   white-space:nowrap;
-  z-index:10;
+  flex-shrink:0;
 }
 .ai-analyse-btn svg{flex-shrink:0}
-.kpi-card:hover .ai-analyse-btn,
-.chart-mini:hover .ai-analyse-btn{
+.chart-mini:hover .ai-analyse-btn,
+.kpi-card:hover .ai-analyse-btn{
   opacity:1;pointer-events:auto;transform:translateY(0);
 }
-.kpi-card{position:relative}
-.chart-mini{position:relative}
 .ai-analyse-btn:hover{background:#1d4ed8;box-shadow:0 3px 12px rgba(37,99,235,.5)}
 
 /*
@@ -588,6 +596,8 @@ input[type=checkbox]{accent-color:var(--primary);width:15px;height:15px;cursor:p
 .chat-header-close:hover{color:var(--text);background:var(--surface2)}
 .chat-header-clear{background:none;border:none;cursor:pointer;color:var(--faint);padding:4px;border-radius:var(--radius);transition:color 150ms,background 150ms;flex-shrink:0;display:flex;align-items:center}
 .chat-header-clear:hover{color:#dc2626;background:rgba(220,38,38,.08)}
+.chat-header-mute{background:none;border:none;cursor:pointer;color:var(--faint);padding:4px;border-radius:var(--radius);transition:color 150ms,background 150ms;flex-shrink:0;display:flex;align-items:center}
+.chat-header-mute:hover{color:var(--primary);background:var(--primary-bg)}
 
 .chat-body{
   flex:1;overflow-y:auto;padding:16px;

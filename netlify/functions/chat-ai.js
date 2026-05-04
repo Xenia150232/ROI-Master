@@ -160,7 +160,12 @@ RESPONSE RULES — follow strictly:
 4. For "what does the [chart name] show" or visualisation questions: you know the dashboard has these charts — Top Assets by Return, Category Breakdown (donut), Median Return by Horizon (bar), Asset Scatter Plot (risk/return), Section Performance, Return Distribution. Describe what that chart type shows using the dataset statistics you have.
 5. Format: use **bold** for asset names, numbers, and key concepts. Use short bullet lists — max 6 bullets. No more than 5 sentences of prose per answer.
 6. Never say "I cannot see the visualisation" or "I don't have access to charts" — instead describe what the chart would show based on the data.
-7. Never pad answers. If the answer is short, keep it short. No closing statements.`;
+7. Never pad answers. If the answer is short, keep it short. No closing statements.
+8. CHART DATA RULE — critical: whenever the answer involves ranking, comparing, or listing assets with return values, include a clean numbered list at the END of your reply in this exact format so the UI can auto-render a bar chart:
+   1. Asset Name — $X,XXX
+   2. Asset Name — $X,XXX
+   (up to 10 items, use real dollar values from the dataset, always use $ and comma-separated numbers)
+   Do this for: "top N" questions, "best/worst performers", "compare X vs Y" (use two columns), category rankings, and any question where chart data would help the user.`;
 
   if (!assetContext) return base;
 

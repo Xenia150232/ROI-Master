@@ -61,24 +61,41 @@
 
   function initTTS() {
     if (!window.speechSynthesis) return;
-    // Restore mute preference
     try { if (localStorage.getItem('roi_tts_muted') === '1') ttsEnabled = false; else ttsEnabled = true; } catch(_) { ttsEnabled = true; }
-    // Pick best female voice — prefer natural/neural names, prefer en-GB/en-AU for warmth
+
     function pickVoice() {
       const voices = window.speechSynthesis.getVoices();
       if (!voices.length) return;
+
+      // Ranked preference: neural/natural cloud voices first, then quality OS voices
+      // Chrome on desktop ships Google neural voices which are the best available
       const PREF = [
+        // Google neural (Chrome desktop — best quality)
+        v => /google.*english.*female/i.test(v.name),
+        v => /google.*uk.*english.*female/i.test(v.name),
+        v => /google.*us.*english/i.test(v.name) && !/male/i.test(v.name),
+        v => /google.*english/i.test(v.name) && !/male/i.test(v.name),
+        // Microsoft neural (Edge / Windows — very natural)
+        v => /microsoft.*aria/i.test(v.name),
+        v => /microsoft.*jenny/i.test(v.name),
+        v => /microsoft.*sonia/i.test(v.name),
+        v => /microsoft.*libby/i.test(v.name),
+        v => /microsoft.*maisie/i.test(v.name),
+        v => /microsoft.*emma/i.test(v.name),
+        v => /microsoft.*zira/i.test(v.name),
+        // Apple neural (macOS/iOS — warm, natural)
         v => /samantha/i.test(v.name),
-        v => /google uk english female/i.test(v.name),
         v => /karen/i.test(v.name),
         v => /moira/i.test(v.name),
         v => /serena/i.test(v.name),
-        v => /victoria/i.test(v.name),
         v => /tessa/i.test(v.name),
         v => /fiona/i.test(v.name),
+        // Generic female English fallback
+        v => /female/i.test(v.name) && /en[-_]GB/i.test(v.lang),
+        v => /female/i.test(v.name) && /en[-_]AU/i.test(v.lang),
         v => /female/i.test(v.name) && /en/i.test(v.lang),
-        v => /en-GB/i.test(v.lang),
-        v => /en-AU/i.test(v.lang),
+        v => /en[-_]GB/i.test(v.lang),
+        v => /en[-_]AU/i.test(v.lang),
         v => /en/i.test(v.lang),
       ];
       for (const test of PREF) {
@@ -87,14 +104,14 @@
       }
       ttsVoice = voices[0];
     }
+
     pickVoice();
-    if (!ttsVoice) window.speechSynthesis.onvoiceschanged = pickVoice;
+    window.speechSynthesis.onvoiceschanged = pickVoice;
   }
 
   function ttsSpeak(text) {
     if (!ttsEnabled || !window.speechSynthesis) return;
     window.speechSynthesis.cancel();
-    // Strip markdown formatting before speaking
     const plain = text
       .replace(/\*\*(.+?)\*\*/g, '$1')
       .replace(/\*(.+?)\*/g, '$1')
@@ -103,15 +120,18 @@
       .replace(/\d+\.\s+/g, '')
       .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
       .replace(/`[^`]+`/g, '')
+      .replace(/CHART DATA:[\s\S]*/i, '')
       .replace(/\n{2,}/g, '. ')
       .replace(/\n/g, ' ')
+      .replace(/\s{2,}/g, ' ')
       .trim();
     if (!plain) return;
     const utt = new SpeechSynthesisUtterance(plain);
     if (ttsVoice) utt.voice = ttsVoice;
-    utt.rate = 1.05;
-    utt.pitch = 1.1;
-    utt.volume = 0.9;
+    // Slightly slower and more natural — less robotic than default
+    utt.rate  = 0.95;
+    utt.pitch = 1.0;
+    utt.volume = 0.85;
     window.speechSynthesis.speak(utt);
   }
 

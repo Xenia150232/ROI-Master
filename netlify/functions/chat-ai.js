@@ -33,9 +33,7 @@ function utcDateKey() {
 // Returns { count, date } for a given IP from Netlify Blobs, or null on error.
 async function getRateRecord(store, ip) {
   try {
-    const raw = await store.get(ip, { type: 'text' });
-    if (!raw) return null;
-    return JSON.parse(raw);
+    return await store.get(ip, { type: 'json' });
   } catch {
     return null;
   }
@@ -43,7 +41,7 @@ async function getRateRecord(store, ip) {
 
 async function setRateRecord(store, ip, record) {
   try {
-    await store.set(ip, JSON.stringify(record));
+    await store.setJSON(ip, record);
   } catch (e) {
     console.warn('Blob write error:', e);
   }

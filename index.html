@@ -460,20 +460,20 @@
       </div>
 
       <div class="about-section about-features-grid">
-        <div class="about-feature about-feature-charts">
+        <div class="about-feature">
           <div class="about-feature-icon">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
           </div>
           <div>
             <strong>7 Interactive Charts — each with one-click AI analysis</strong>
             <ul class="about-charts-list">
-              <li><b>Best Returns</b> — top 10 assets by value at any time horizon (1Y–20Y), switchable via range tabs</li>
-              <li><b>Returns by Asset Class</b> — median return per class (Stocks, ETFs, Commodities, Real Estate) at any horizon</li>
-              <li><b>Avg Return Heatmap</b> — colour-coded grid showing average return per asset class across all five horizons simultaneously, with hover tooltips</li>
-              <li><b>Median Return by Horizon</b> — grouped bars comparing how each asset class compounds differently over time</li>
-              <li><b>Category Breakdown</b> — donut chart of asset count or average return by category (top 15), switchable by horizon</li>
-              <li><b>Top Categories by ROI</b> — horizontal bar ranking of sub-categories (AI, EV, Payments, etc.) by average return</li>
-              <li><b>ROI Growth Chart</b> — multi-asset line chart that appears when you select rows; compare up to any number of assets side by side across 1Y–20Y</li>
+              <li><b>Best Returns</b> — bar chart, top 10 by horizon</li>
+              <li><b>Returns by Asset Class</b> — median per class</li>
+              <li><b>Avg Return Heatmap</b> — colour-coded across all horizons</li>
+              <li><b>Median Return by Horizon</b> — grouped bars over time</li>
+              <li><b>Category Breakdown</b> — donut, top 15 categories</li>
+              <li><b>Top Categories by ROI</b> — horizontal bar ranking</li>
+              <li><b>ROI Growth Chart</b> — multi-asset line comparison</li>
             </ul>
           </div>
         </div>
@@ -589,17 +589,17 @@
 <script src="app.js"></script>
 <script src="chat.js"></script>
 <script>
-  // CollabDraw toast — shown once after 60 s, once per session
-  (function() {
-    if (sessionStorage.getItem('collab_toast_shown')) return;
-    setTimeout(function() {
-      const t = document.getElementById('collabToast');
-      if (!t) return;
-      t.style.display = 'flex';
-      requestAnimationFrame(function() { requestAnimationFrame(function() { t.classList.add('collab-toast-visible'); }); });
-      sessionStorage.setItem('collab_toast_shown', '1');
-    }, 60000);
-  })();
+  // CollabDraw toast — fires 60 s after every page load (no storage check)
+  setTimeout(function() {
+    var t = document.getElementById('collabToast');
+    if (!t) return;
+    t.style.display = 'flex';
+    requestAnimationFrame(function() {
+      requestAnimationFrame(function() {
+        t.classList.add('collab-toast-visible');
+      });
+    });
+  }, 60000);
 
   const _TITLE_MAIN  = 'ROI Master - Investment Dashboard — See growth across investments and asset classes with modern data visualisations and AI chat analysis by Qaunain Meghjee';
   const _TITLE_ABOUT = 'About ROI Master — Investment Dashboard by Qaunain Meghjee';

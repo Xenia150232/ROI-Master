@@ -1,6 +1,6 @@
 # ROI Master — Investment Dashboard
 
-A tool that lets you see growth across investments and asset classes with advanced data visualisations and AI chat analysis. ***Easily add your own datasets.*** No login or backend required — fully client-side, runs entirely in the browser from a single HTML file.
+A tool that lets you see growth across investments and asset classes with advanced data visualisations and AI chat analysis. ***Easily add your own datasets.*** No login or backend required — fully client-side, runs entirely in the browser from a single HTML file. **Live Demo:** <a href="https://roimaster.netlify.app/" target="_blank">https://roimaster.netlify.app/</a>
 
 ![ROI Master Dashboard](public/Images/ROI_Master_-_001.png)
 ![ROI Master Charts](public/Images/ROI_Master_-_002.png)

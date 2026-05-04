@@ -16,6 +16,7 @@ A tool that lets you see growth across investments and asset classes with advanc
 - **300+ pre-loaded assets** across Stocks, ETFs & Funds, Commodities, and Real Estate — ***easily add your own datasets*** via CSV upload
 - **Adjustable seed value** — change the initial investment amount and all figures update instantly
 - **Analyse with AI** — hover any of the 30 KPI tiles or any of the 7 data visualisations and a blue **Analyse with AI** button appears. Clicking it fires a pre-built, context-aware question directly into the chatbot — no typing needed. The question automatically reflects the active section, selected time horizon, and current data state
+- **Dynamic Tooltips** — hover any of the 30 KPI tiles or any of the 7 data visualisations to see a live tooltip listing the **top 10 assets** that make up that specific data point. Every tooltip is generated on the fly from the current filtered dataset and active time horizon, so it always reflects exactly what you're looking at
 - **30 KPI Tiles** — scrolling carousel of at-a-glance performance stats including:
   - Best 1Y, 5Y, 10Y, 15Y, and 20Y performer with name and return value
   - 10x Club, 25x Club, and 50x Club — counts of assets that hit each multiplier threshold

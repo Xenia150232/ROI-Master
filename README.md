@@ -327,6 +327,8 @@ As someone who invests across multiple asset classes, I needed a clear way to vi
 
 ## Also by the same creator — CollabDraw
 
+[![CollabDraw — Real-Time Collaborative Design Canvas](public/Images/collabdarw-preview-image.png)](https://www.CollabDraw.com)
+
 **[CollabDraw](https://www.CollabDraw.com)** is a real-time collaborative UX and design canvas — an infinite workspace where teams can design, draw, and create together live.
 
 Key features:

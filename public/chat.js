@@ -280,7 +280,7 @@
       <span>${remainingCalls} of ${DAILY_LIMIT} AI messages remaining today</span>
       <span class="counter-info-wrap">
         <svg class="counter-info-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-        <span class="counter-info-tooltip">Need more AI credits? Contact the <a href="/about" onclick="event.preventDefault();if(window.openAboutModal)openAboutModal()">site owner</a></span>
+        <span class="counter-info-tooltip"><span class="counter-info-tooltip-inner">Need more AI credits? Contact the <a href="/about" onclick="event.preventDefault();if(window.openAboutModal)openAboutModal()">site owner</a></span></span>
       </span>`;
   }
 

@@ -822,45 +822,57 @@ input[type=checkbox]{accent-color:var(--primary);width:15px;height:15px;cursor:p
 [data-theme="dark"] .chat-call-counter-bar.counter-empty{background:rgba(220,38,38,.1);color:#f87171}
 
 /* ── Counter info icon + tooltip ─────────────────────────────── */
-.counter-info-wrap{position:static;display:inline-flex;align-items:center;margin-left:2px;cursor:default}
+/* The counter bar is the positioning parent */
+.chat-call-counter-bar{position:relative}
+.counter-info-wrap{
+  position:static;display:inline-flex;align-items:center;
+  margin-left:2px;cursor:default;
+}
 .counter-info-icon{opacity:.7;flex-shrink:0;transition:opacity 150ms}
 .counter-info-wrap:hover .counter-info-icon{opacity:1}
-/* The counter bar itself must be the positioning parent */
-.chat-call-counter-bar{position:relative}
+
+/* Tooltip sits above the bar. A transparent pseudo-bridge fills the gap so
+   moving the mouse from the icon into the tooltip doesn't lose hover. */
 .counter-info-tooltip{
-  position:absolute;bottom:calc(100% + 8px);right:10px;left:auto;
-  transform:translateY(4px);
+  position:absolute;
+  /* sits 0px above bar top — the visible box starts after the bridge padding */
+  bottom:100%;right:10px;left:auto;
+  padding-bottom:10px; /* invisible bridge over the bar gap */
+  pointer-events:none;opacity:0;
+  transition:opacity 150ms;
+  z-index:9999;
+}
+.counter-info-wrap:hover .counter-info-tooltip,
+.counter-info-tooltip:hover{
+  opacity:1;pointer-events:auto;
+}
+/* The visible bubble is a pseudo-element so the padding bridge stays transparent */
+.counter-info-tooltip-inner{
   background:var(--surface,#fff);color:var(--text,#1a202c);
   border:1px solid var(--border,#e2e8f0);border-radius:8px;
   padding:8px 12px;font-size:11.5px;font-weight:400;line-height:1.5;
-  white-space:nowrap;pointer-events:none;opacity:0;
+  white-space:nowrap;
   box-shadow:0 6px 20px rgba(0,0,0,.13);
-  transition:opacity 150ms,transform 150ms;
-  z-index:9999;
-  max-width:calc(100% - 20px);
+  max-width:calc(100vw - 32px);
+  position:relative;
 }
-.counter-info-wrap:hover .counter-info-tooltip{
-  opacity:1;pointer-events:auto;
-  transform:translateY(0);
-}
-.counter-info-tooltip a{color:var(--primary,#2563eb);font-weight:500;text-decoration:underline;text-underline-offset:2px}
-/* arrow pointing down, aligned to right */
-.counter-info-tooltip::after{
-  content:'';position:absolute;top:100%;right:16px;left:auto;
+.counter-info-tooltip-inner::after{
+  content:'';position:absolute;top:100%;right:14px;
   border:5px solid transparent;border-top-color:var(--border,#e2e8f0);
 }
-.counter-info-tooltip::before{
-  content:'';position:absolute;top:calc(100% - 1px);right:16px;left:auto;
+.counter-info-tooltip-inner::before{
+  content:'';position:absolute;top:calc(100% - 1px);right:14px;
   border:5px solid transparent;border-top-color:var(--surface,#fff);
   z-index:1;
 }
-[data-theme="dark"] .counter-info-tooltip{
+.counter-info-tooltip a{color:var(--primary,#2563eb);font-weight:500;text-decoration:underline;text-underline-offset:2px}
+[data-theme="dark"] .counter-info-tooltip-inner{
   background:var(--surface,#1e293b);color:var(--text,#e2e8f0);
   border-color:var(--border,#334155);
   box-shadow:0 6px 20px rgba(0,0,0,.4);
 }
-[data-theme="dark"] .counter-info-tooltip::after{border-top-color:var(--border,#334155)}
-[data-theme="dark"] .counter-info-tooltip::before{border-top-color:var(--surface,#1e293b)}
+[data-theme="dark"] .counter-info-tooltip-inner::after{border-top-color:var(--border,#334155)}
+[data-theme="dark"] .counter-info-tooltip-inner::before{border-top-color:var(--surface,#1e293b)}
 
 /* ── Rate limit message ──────────────────────────────────────── */
 .chat-msg-rate-limit{
@@ -984,7 +996,7 @@ input[type=checkbox]{accent-color:var(--primary);width:15px;height:15px;cursor:p
 /* ── CollabDraw toast notification ───────────────────────────── */
 .collab-toast{
   position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);
-  z-index:9990;width:min(520px,calc(100vw - 32px));
+  z-index:9990;width:min(660px,calc(100vw - 32px));
   opacity:0;transition:opacity 350ms,transform 350ms;pointer-events:none;
 }
 .collab-toast.collab-toast-visible{opacity:1;transform:translateX(-50%) translateY(0);pointer-events:auto}
@@ -996,8 +1008,8 @@ input[type=checkbox]{accent-color:var(--primary);width:15px;height:15px;cursor:p
 }
 .collab-toast-icon{width:38px;height:38px;border-radius:9px;background:linear-gradient(135deg,#10b981,#06b6d4);color:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .collab-toast-body{flex:1;min-width:0}
-.collab-toast-title{font-size:13px;font-weight:700;color:var(--text);margin:0 0 2px}
-.collab-toast-desc{font-size:11.5px;color:var(--muted);margin:0;line-height:1.4}
+.collab-toast-title{font-size:13px;font-weight:700;color:var(--text);margin:0 0 2px;white-space:nowrap}
+.collab-toast-desc{font-size:11.5px;color:var(--muted);margin:0;line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .collab-toast-cta{flex-shrink:0;padding:7px 14px;border-radius:8px;background:linear-gradient(135deg,#10b981,#06b6d4);color:#fff;font-size:12.5px;font-weight:700;text-decoration:none;white-space:nowrap;transition:opacity 150ms}
 .collab-toast-cta:hover{opacity:.85}
 .collab-toast-close{flex-shrink:0;width:26px;height:26px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all 150ms}

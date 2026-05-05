@@ -870,8 +870,30 @@ function renderChartArea(){
     fill:false,
   }));
 
+  const _tooltipShadow={
+    id:'tooltipShadow',
+    beforeDraw(chartInst){
+      const {ctx}=chartInst;
+      const tooltip=chartInst.tooltip;
+      if(!tooltip||tooltip.opacity===0) return;
+      const{x,y,width,height}=tooltip;
+      ctx.save();
+      ctx.shadowColor=isDark?'rgba(0,0,0,0.55)':'rgba(15,21,35,0.18)';
+      ctx.shadowBlur=24;ctx.shadowOffsetY=8;
+      ctx.fillStyle=isDark?'#1c2333':'#ffffff';
+      const r=10;
+      ctx.beginPath();
+      ctx.moveTo(x+r,y);ctx.lineTo(x+width-r,y);ctx.quadraticCurveTo(x+width,y,x+width,y+r);
+      ctx.lineTo(x+width,y+height-r);ctx.quadraticCurveTo(x+width,y+height,x+width-r,y+height);
+      ctx.lineTo(x+r,y+height);ctx.quadraticCurveTo(x,y+height,x,y+height-r);
+      ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);
+      ctx.closePath();ctx.fill();
+      ctx.restore();
+    }
+  };
   chart=new Chart(canvas,{
     type:'line',
+    plugins:[_tooltipShadow],
     data:{labels,datasets},
     options:{
       responsive:true,
@@ -885,6 +907,15 @@ function renderChartArea(){
           borderWidth:1,
           titleColor:isDark?'#e8eaf0':'#1a2035',
           bodyColor:isDark?'#8892a4':'#5a6680',
+          padding:{top:12,right:14,bottom:12,left:14},
+          boxPadding:5,
+          cornerRadius:10,
+          titleFont:{size:12,weight:'700',family:"'Inter',system-ui,sans-serif"},
+          bodyFont:{size:11,family:"'Inter',system-ui,sans-serif"},
+          titleSpacing:4,
+          bodySpacing:3,
+          titleMarginBottom:8,
+          multiKeyBackground:'transparent',
           callbacks:{
             label:ctx=>` ${ctx.dataset.label}: ${ctx.parsed.y!=null?'$'+ctx.parsed.y.toLocaleString():'N/A'}`
           }
@@ -1089,7 +1120,42 @@ function renderMiniCharts(){
   const tooltipTitle=isDark?'#e8eaf0':'#1a2035';
   const tooltipBody=isDark?'#8892a4':'#5a6680';
   // Shared tooltip base — applied to every mini chart
-  const tipBase={backgroundColor:tooltipBg,borderColor:tooltipBorder,borderWidth:1,titleColor:tooltipTitle,bodyColor:tooltipBody,padding:10,boxPadding:4,titleFont:{size:11,weight:'bold'},bodyFont:{size:10.5},multiKeyBackground:'transparent'};
+  const tipBase={
+    backgroundColor:tooltipBg,borderColor:tooltipBorder,borderWidth:1,
+    titleColor:tooltipTitle,bodyColor:tooltipBody,
+    padding:{top:12,right:14,bottom:12,left:14},
+    boxPadding:5,
+    cornerRadius:10,
+    titleFont:{size:12,weight:'700',family:"'Inter',system-ui,sans-serif"},
+    bodyFont:{size:11,family:"'Inter',system-ui,sans-serif"},
+    titleSpacing:4,
+    bodySpacing:3,
+    titleMarginBottom:8,
+    multiKeyBackground:'transparent',
+  };
+  // Plugin that draws a drop-shadow behind Chart.js tooltips (not natively supported)
+  const tooltipShadowPlugin={
+    id:'tooltipShadow',
+    beforeDraw(chart){
+      const {ctx}=chart;
+      const tooltip=chart.tooltip;
+      if(!tooltip||tooltip.opacity===0) return;
+      const{x,y,width,height}=tooltip;
+      ctx.save();
+      ctx.shadowColor=isDark?'rgba(0,0,0,0.55)':'rgba(15,21,35,0.18)';
+      ctx.shadowBlur=24;
+      ctx.shadowOffsetY=8;
+      ctx.fillStyle=tooltipBg;
+      const r=10;
+      ctx.beginPath();
+      ctx.moveTo(x+r,y);ctx.lineTo(x+width-r,y);ctx.quadraticCurveTo(x+width,y,x+width,y+r);
+      ctx.lineTo(x+width,y+height-r);ctx.quadraticCurveTo(x+width,y+height,x+width-r,y+height);
+      ctx.lineTo(x+r,y+height);ctx.quadraticCurveTo(x,y+height,x,y+height-r);
+      ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);
+      ctx.closePath();ctx.fill();
+      ctx.restore();
+    }
+  };
 
   const activeData=filteredData.length>0?filteredData:secData(activeSection);
 
@@ -1105,6 +1171,7 @@ function renderMiniCharts(){
     document.getElementById('top10Sub').textContent=`Top ${top10.length} assets by ${yrLabel} value${top10Expanded?' · expanded':''}`;
     top10ChartInst=new Chart(c1,{
       type:'bar',
+      plugins:[tooltipShadowPlugin],
       data:{
         labels:top10.map(r=>r.name.length>14?r.name.slice(0,13)+'…':r.name),
         datasets:[{
@@ -1161,6 +1228,7 @@ function renderMiniCharts(){
   if(c2){
     sectionChartInst=new Chart(c2,{
       type:'bar',
+      plugins:[tooltipShadowPlugin],
       data:{
         labels:secs.map(s=>secLabel(s)),
         datasets:[{
@@ -1330,6 +1398,7 @@ function renderMiniCharts(){
     }));
     scatterChartInst=new Chart(c4,{
       type:'bar',
+      plugins:[tooltipShadowPlugin],
       data:{labels:horizonLabels,datasets:grpDatasets},
       options:{
         responsive:true,maintainAspectRatio:false,
@@ -1385,6 +1454,7 @@ function renderMiniCharts(){
     const catCountPalette=['#2563eb','#10b981','#f59e0b','#ef4444','#06b6d4','#f97316','#ec4899','#84cc16','#14b8a6','#a78bfa','#fb923c','#22d3ee','#f43f5e','#4ade80','#818cf8'];
     catCountChartInst=new Chart(c5,{
       type:'doughnut',
+      plugins:[tooltipShadowPlugin],
       data:{
         labels:catCountSorted.map(([k])=>k),
         datasets:[{
@@ -1452,6 +1522,7 @@ function renderMiniCharts(){
     });
     catRoiChartInst=new Chart(c6,{
       type:'bar',
+      plugins:[tooltipShadowPlugin],
       data:{
         labels:catRoiSorted.map(d=>d.name),
         datasets:[{

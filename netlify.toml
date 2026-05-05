@@ -1,5 +1,6 @@
 [build]
-  publish = "."
+  command = "npm run build"
+  publish = "dist"
   functions = "netlify/functions"
 
 # Extend function timeout for AI thinking-mode responses (DeepSeek reasoning can take 15-25s)
@@ -17,17 +18,6 @@
   to = "https://roimaster.netlify.app/:splat"
   status = 301
   force = true
-
-# Serve static assets directly (exclude from SPA rewrite)
-[[redirects]]
-  from = "/og-image.png"
-  to = "/og-image.png"
-  status = 200
-
-[[redirects]]
-  from = "/public/*"
-  to = "/public/:splat"
-  status = 200
 
 # Serve index.html for SPA routes
 [[redirects]]

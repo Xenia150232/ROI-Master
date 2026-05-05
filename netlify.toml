@@ -18,7 +18,18 @@
   status = 301
   force = true
 
-# Serve index.html for SPA routes (without force, existing files are served first)
+# Serve static assets directly (exclude from SPA rewrite)
+[[redirects]]
+  from = "/og-image.png"
+  to = "/og-image.png"
+  status = 200
+
+[[redirects]]
+  from = "/public/*"
+  to = "/public/:splat"
+  status = 200
+
+# Serve index.html for SPA routes
 [[redirects]]
   from = "/*"
   to = "/index.html"

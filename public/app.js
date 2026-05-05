@@ -1246,21 +1246,39 @@ function renderMiniCharts(){
         plugins:{
           legend:{display:false},
           tooltip:{
-            ...tipBase,
-            yAlign:'top',
-            callbacks:{
-              title:ctx=>`${secs[ctx[0].dataIndex]} · ${sectionRange}Y`,
-              label:ctx=>{
-                const i=ctx.dataIndex;
-                const med=ctx.parsed.x;
-                const lines=[` Median: $${med!=null?med.toLocaleString(undefined,{maximumFractionDigits:0}):'—'}`,` Assets: ${secCounts[i]}`,``,' Top assets:'];
-                (secTopAssets[i]||[]).slice(0,5).forEach((r,ri)=>{
-                  const v=r['v'+sectionRange]*seedMultiplier;
-                  const vs=v>=1000000?'$'+(v/1000000).toFixed(2)+'M':v>=1000?'$'+(v/1000).toFixed(1)+'K':'$'+Math.round(v);
-                  lines.push(` ${ri+1}. ${r.name} — ${vs}`);
-                });
-                return lines;
-              }
+            enabled:false,
+            external(context){
+              const tip=document.getElementById('sectionChartTip');
+              if(!tip) return;
+              if(context.tooltip.opacity===0){tip.style.display='none';return;}
+              const idx=context.tooltip.dataPoints?.[0]?.dataIndex;
+              if(idx==null){tip.style.display='none';return;}
+              const med=context.tooltip.dataPoints[0].parsed.x;
+              const medStr=med!=null?'$'+med.toLocaleString(undefined,{maximumFractionDigits:0}):'—';
+              const tops=secTopAssets[idx]||[];
+              let rows='';
+              tops.forEach((r,ri)=>{
+                const v=r['v'+sectionRange]*seedMultiplier;
+                const vs=v>=1000000?'$'+(v/1000000).toFixed(2)+'M':v>=1000?'$'+(v/1000).toFixed(1)+'K':'$'+Math.round(v);
+                rows+=`<div class="chart-ext-tip-row"><span class="chart-ext-tip-name">${ri+1}. ${r.name}</span><span class="chart-ext-tip-val">${vs}</span></div>`;
+              });
+              tip.innerHTML=`
+                <div class="chart-ext-tip-title">${secs[idx]} · ${sectionRange}Y</div>
+                <div class="chart-ext-tip-meta">Median: <strong>${medStr}</strong></div>
+                <div class="chart-ext-tip-meta" style="color:var(--muted)">Assets: ${secCounts[idx]}</div>
+                ${rows?`<div class="chart-ext-tip-label">Top assets</div><div class="chart-ext-tip-list">${rows}</div>`:''}
+              `;
+              tip.style.display='block';
+              const pos=context.chart.canvas.getBoundingClientRect();
+              const x=context.tooltip.caretX;
+              const y=context.tooltip.caretY;
+              const tw=tip.offsetWidth||240, th=tip.offsetHeight||200;
+              let left=pos.left+x+14, top=pos.top+y-10;
+              if(left+tw>window.innerWidth-10) left=pos.left+x-tw-14;
+              if(top+th>window.innerHeight-10) top=window.innerHeight-th-10;
+              if(top<4) top=4;
+              tip.style.left=left+'px';
+              tip.style.top=top+'px';
             }
           }
         },
@@ -1269,6 +1287,10 @@ function renderMiniCharts(){
           y:{grid:{display:false},ticks:{color:tickColor,font:{size:11}}}
         }
       }
+    });
+    document.getElementById('sectionCard')?.addEventListener('mouseleave',()=>{
+      const tip=document.getElementById('sectionChartTip');
+      if(tip) tip.style.display='none';
     });
   }
 
@@ -1406,23 +1428,42 @@ function renderMiniCharts(){
         plugins:{
           legend:{display:true,position:'bottom',labels:{color:tickColor,font:{size:10},padding:8,boxWidth:10,boxHeight:8}},
           tooltip:{
-            ...tipBase,
-            yAlign:'top',
-            callbacks:{
-              title:ctx=>`${horizonLabels[ctx[0].dataIndex]} Median`,
-              label:ctx=>{
-                const si=ctx.datasetIndex;
-                const hi=ctx.dataIndex;
-                const y=horizons[hi];
-                const med=ctx.parsed.y;
-                const lines=[` ${grpLabels[si]}: $${med!=null?med.toLocaleString(undefined,{maximumFractionDigits:0}):'—'}`,` Assets: ${grpCounts[si][hi]}`,``,' Top assets:'];
-                grpTop[si][hi].slice(0,5).forEach((r,i)=>{
-                  const v=r['v'+y]*seedMultiplier;
-                  const vs=v>=1000000?'$'+(v/1000000).toFixed(2)+'M':v>=1000?'$'+(v/1000).toFixed(1)+'K':'$'+Math.round(v);
-                  lines.push(` ${i+1}. ${r.name} — ${vs}`);
-                });
-                return lines;
-              }
+            enabled:false,
+            external(context){
+              const tip=document.getElementById('scatterChartTip');
+              if(!tip) return;
+              if(context.tooltip.opacity===0){tip.style.display='none';return;}
+              const dp=context.tooltip.dataPoints?.[0];
+              if(!dp){tip.style.display='none';return;}
+              const si=dp.datasetIndex;
+              const hi=dp.dataIndex;
+              const y=horizons[hi];
+              const med=dp.parsed.y;
+              const medStr=med!=null?'$'+med.toLocaleString(undefined,{maximumFractionDigits:0}):'—';
+              const tops=grpTop[si][hi]||[];
+              let rows='';
+              tops.forEach((r,i)=>{
+                const v=r['v'+y]*seedMultiplier;
+                const vs=v>=1000000?'$'+(v/1000000).toFixed(2)+'M':v>=1000?'$'+(v/1000).toFixed(1)+'K':'$'+Math.round(v);
+                rows+=`<div class="chart-ext-tip-row"><span class="chart-ext-tip-name">${i+1}. ${r.name}</span><span class="chart-ext-tip-val">${vs}</span></div>`;
+              });
+              tip.innerHTML=`
+                <div class="chart-ext-tip-title">${horizonLabels[hi]} Median</div>
+                <div class="chart-ext-tip-meta"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${grpColors[si]};margin-right:5px;vertical-align:middle"></span>${grpLabels[si]}: <strong>${medStr}</strong></div>
+                <div class="chart-ext-tip-meta" style="color:var(--muted)">Assets: ${grpCounts[si][hi]}</div>
+                ${rows?`<div class="chart-ext-tip-label">Top assets</div><div class="chart-ext-tip-list">${rows}</div>`:''}
+              `;
+              tip.style.display='block';
+              const pos=context.chart.canvas.getBoundingClientRect();
+              const x=context.tooltip.caretX;
+              const y2=context.tooltip.caretY;
+              const tw=tip.offsetWidth||240, th=tip.offsetHeight||200;
+              let left=pos.left+x+14, top=pos.top+y2-10;
+              if(left+tw>window.innerWidth-10) left=pos.left+x-tw-14;
+              if(top+th>window.innerHeight-10) top=window.innerHeight-th-10;
+              if(top<4) top=4;
+              tip.style.left=left+'px';
+              tip.style.top=top+'px';
             }
           }
         },
@@ -1431,6 +1472,10 @@ function renderMiniCharts(){
           y:{grid:{color:gridColor},ticks:{color:tickColor,font:{size:10},callback:v=>v>=1000000?'$'+(v/1000000).toFixed(1)+'M':v>=1000?'$'+(v/1000).toFixed(0)+'K':'$'+v}}
         }
       }
+    });
+    document.getElementById('scatterCard')?.addEventListener('mouseleave',()=>{
+      const tip=document.getElementById('scatterChartTip');
+      if(tip) tip.style.display='none';
     });
   }
 

@@ -416,6 +416,16 @@ input[type=checkbox]{accent-color:var(--primary);width:15px;height:15px;cursor:p
 .heat-tip-name{color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:140px}
 .heat-tip-val{color:var(--muted);font-weight:600;flex-shrink:0}
 
+/* External HTML tooltip for Chart.js charts (escapes canvas clipping) */
+.chart-ext-tip{position:fixed;z-index:400;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:12px 14px;font-size:12px;color:var(--text);line-height:1.6;box-shadow:0 12px 32px rgba(0,0,0,.18);min-width:220px;max-width:280px;pointer-events:none}
+.chart-ext-tip-title{font-weight:700;font-size:13px;color:var(--primary);margin-bottom:6px}
+.chart-ext-tip-meta{font-size:12px;color:var(--text);margin-bottom:2px}
+.chart-ext-tip-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin:6px 0 4px}
+.chart-ext-tip-list{display:flex;flex-direction:column;gap:3px}
+.chart-ext-tip-row{display:flex;justify-content:space-between;gap:12px;font-size:11px}
+.chart-ext-tip-name{color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:150px}
+.chart-ext-tip-val{color:var(--muted);font-weight:600;flex-shrink:0}
+
 /* TOOLTIP */
 .tooltip-wrap{position:relative}
 .tooltip-box{display:none;position:absolute;top:calc(100% + 8px);right:0;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:12px 15px;font-size:12px;color:var(--text);line-height:1.7;box-shadow:0 12px 32px rgba(0,0,0,.15);z-index:200;min-width:230px;white-space:nowrap}

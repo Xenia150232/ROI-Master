@@ -1,8 +1,33 @@
 // ===== STATE =====
 let allData = DEFAULT_DATA.slice();
-const SECTIONS = ['All','Stocks','ETFs & Funds','Bonds','Commodities','Real Estate'];
+// SEC_ICONS / SEC_COLORS are hint maps — new sections from custom CSVs get fallbacks automatically
 const SEC_ICONS = {'All':'🌐','Stocks':'📈','ETFs & Funds':'📦','Bonds':'🏦','Commodities':'🛢️','Real Estate':'🏘️'};
+const SEC_COLORS_MAP = {'Stocks':'#2563eb','ETFs & Funds':'#10b981','Bonds':'#0ea5e9','Commodities':'#f59e0b','Real Estate':'#ef4444'};
+const SEC_COLORS_POOL = ['#2563eb','#10b981','#0ea5e9','#f59e0b','#ef4444','#f97316','#a855f7','#06b6d4','#84cc16','#ec4899','#14b8a6','#fb923c'];
 const COLORS = ['#2563eb','#7c3aed','#f59e0b','#ef4444','#06b6d4','#10b981','#f97316','#ec4899','#a855f7','#14b8a6','#f43f5e','#84cc16','#fb923c','#22d3ee','#818cf8'];
+
+// Returns ordered list of sections present in data, with 'All' prepended
+function getSections(data){
+  const known=['Stocks','ETFs & Funds','Bonds','Commodities','Real Estate'];
+  const inData=[...new Set((data||allData).map(r=>r.section).filter(Boolean))];
+  // Known sections first (in order), then any unknown ones alphabetically
+  const ordered=known.filter(s=>inData.includes(s));
+  inData.filter(s=>!known.includes(s)).sort().forEach(s=>ordered.push(s));
+  return ['All',...ordered];
+}
+
+// Returns a stable color for a section name
+function getSectionColor(sec, fallbackIndex){
+  if(SEC_COLORS_MAP[sec]) return SEC_COLORS_MAP[sec];
+  return SEC_COLORS_POOL[fallbackIndex % SEC_COLORS_POOL.length];
+}
+
+// Returns short display label for a section name
+function secLabel(s){
+  if(s==='ETFs & Funds') return 'ETFs';
+  if(s==='Real Estate') return 'Real Est.';
+  return s;
+}
 
 let chartTimelineYears = 20;
 
@@ -62,10 +87,11 @@ function buildSectionTabs(){
   const el=document.getElementById('sectionTabs');
   if(!el) return;
   let h='';
-  for(const s of SECTIONS){
+  for(const s of getSections(allData)){
     const cnt=s==='All'?allData.length:allData.filter(r=>r.section===s).length;
+    const icon=SEC_ICONS[s]||'📁';
     h+=`<button class="sec-tab${s===activeSection?' active':''}" onclick="applySection('${s.replace(/'/g,"\\'")}')">
-      ${SEC_ICONS[s]} ${s} <span class="sec-count">${cnt}</span>
+      ${icon} ${s} <span class="sec-count">${cnt}</span>
     </button>`;
   }
   el.innerHTML=h;
@@ -1115,8 +1141,9 @@ function renderMiniCharts(){
     });
   }
 
-  // Mini 2: Median return by section (range: sectionRange)
-  const secs=['Stocks','ETFs & Funds','Commodities','Real Estate'];
+  // Mini 2: Median return by section (range: sectionRange) — fully dynamic
+  const secs=getSections(activeData).filter(s=>s!=='All');
+  const secColors=secs.map((s,i)=>getSectionColor(s,i));
   const secTopAssets=secs.map(s=>
     activeData.filter(r=>r.section===s&&r['v'+sectionRange]!=null)
       .sort((a,b)=>b['v'+sectionRange]-a['v'+sectionRange])
@@ -1127,7 +1154,6 @@ function renderMiniCharts(){
     return vals.length?vals[Math.floor(vals.length/2)]:null;
   });
   const secCounts=secs.map(s=>activeData.filter(r=>r.section===s&&r['v'+sectionRange]!=null).length);
-  const secColors=['#2563eb','#10b981','#f59e0b','#ef4444'];
   const c2=document.getElementById('sectionChart');
   if(sectionChartInst){sectionChartInst.destroy();sectionChartInst=null;}
   const secSubEl=document.getElementById('sectionSub');
@@ -1136,7 +1162,7 @@ function renderMiniCharts(){
     sectionChartInst=new Chart(c2,{
       type:'bar',
       data:{
-        labels:secs.map(s=>s==='ETFs & Funds'?'ETFs':s),
+        labels:secs.map(s=>secLabel(s)),
         datasets:[{
           label:`Median ${sectionRange}Y Value`,
           data:secMedians,
@@ -1177,9 +1203,9 @@ function renderMiniCharts(){
     });
   }
 
-  // Mini 3: Avg return heatmap — rows = asset class, cols = time horizon
-  const heatSecs=['Stocks','ETFs & Funds','Commodities','Real Estate'];
-  const heatSecLabels=['Stocks','ETFs','Commodities','Real Est.'];
+  // Mini 3: Avg return heatmap — rows = asset class, cols = time horizon — fully dynamic
+  const heatSecs=getSections(activeData).filter(s=>s!=='All');
+  const heatSecLabels=heatSecs.map(s=>secLabel(s));
   const heatPeriods=[{yr:1,label:'1Y'},{yr:5,label:'5Y'},{yr:10,label:'10Y'},{yr:15,label:'15Y'},{yr:20,label:'20Y'}];
   const heatCont=document.getElementById('heatmapContainer');
   if(heatCont){
@@ -1258,7 +1284,7 @@ function renderMiniCharts(){
         ${heatPeriods.map(p=>`<th>${p.label}</th>`).join('')}
       </tr></thead><tbody>`;
     heatSecs.forEach((s,si)=>{
-      htm+=`<tr><td style="text-align:left;font-weight:700;font-size:11px;color:var(--text);background:var(--surface2);padding:6px 8px;border-left:3px solid ${['#2563eb','#10b981','#f59e0b','#ef4444'][si]};white-space:nowrap">${heatSecLabels[si]}</td>`;
+      htm+=`<tr><td style="text-align:left;font-weight:700;font-size:11px;color:var(--text);background:var(--surface2);padding:6px 8px;border-left:3px solid ${getSectionColor(s,si)};white-space:nowrap">${heatSecLabels[si]}</td>`;
       matrix[si].forEach((v,pi)=>{
         const bg=heatInterp(v);
         const tc=heatTextColor(v);
@@ -1280,9 +1306,9 @@ function renderMiniCharts(){
   const c4=document.getElementById('scatterChart');
   if(scatterChartInst){scatterChartInst.destroy();scatterChartInst=null;}
   if(c4){
-    const grpSecs=['Stocks','ETFs & Funds','Commodities','Real Estate'];
-    const grpLabels=['Stocks','ETFs','Commodities','Real Est.'];
-    const grpColors=['#2563eb','#10b981','#f59e0b','#ef4444'];
+    const grpSecs=getSections(activeData).filter(s=>s!=='All');
+    const grpLabels=grpSecs.map(s=>secLabel(s));
+    const grpColors=grpSecs.map((s,i)=>getSectionColor(s,i));
     const horizons=[1,5,10,15,20];
     const horizonLabels=['1Y','5Y','10Y','15Y','20Y'];
     // Pre-build top-10 per section per horizon for tooltip
@@ -1720,6 +1746,7 @@ function downloadSampleCSV(e){
     'Asset Name,Category,1Yr Value,1Yr Growth (x),5Yr Value,5Yr Growth (x),10Yr Value,10Yr Growth (x),15Yr Value,15Yr Growth (x),20Yr Value,20Yr Growth (x)',
     'Gold ETF (GLD),Commodities,1080,1.08,1350,1.35,1820,1.82,2400,2.40,3200,3.20',
     'Vanguard Total Market ETF (VTI),ETFs & Funds,1240,1.24,1770,1.77,3150,3.15,5800,5.80,9200,9.20',
+    'Corp Bonds (LQD),Bonds,1050,1.05,1100,1.10,1400,1.40,1800,1.80,2500,2.50',
     'Prologis (PLD),Real Estate,1180,1.18,2100,2.10,4600,4.60,8400,8.40,14000,14.00',
     'Apple (AAPL),Stocks,1380,1.38,2850,2.85,9200,9.20,28000,28.00,68000,68.00',
   ];
@@ -1792,7 +1819,7 @@ function resetToDefault(){
   document.getElementById('seedInput').value=1000;
   document.getElementById('resetDataBtn').style.display='none';
   selectedCats=new Set(); selectedSecs=new Set(); selectedNames=[];
-  setDataInfoBar('Default Dataset — 300+ Assets','Curated ROI data spanning 300+ global assets across Stocks, ETFs & Funds, Commodities, and Real Estate — covering returns at 1, 5, 10, 15, and 20-year horizons. <strong>Easily add your own datasets via CSV upload</strong>.',false);
+  setDataInfoBar('Default Dataset — 300+ Assets','Curated ROI data spanning 300+ global assets across Stocks, ETFs &amp; Funds, Bonds, Commodities, and Real Estate — covering returns at 1, 5, 10, 15, and 20-year horizons. <strong>Easily add your own datasets via CSV upload</strong>.',false);
   buildSidebar();
   applySection('All'); updateKPIs();
 }
@@ -1812,7 +1839,7 @@ function loadCustomCSV(input){
       }
       const lines=raw.split('\n').filter(l=>l.trim());
       const parsed=[];
-      const secMap={'STOCKS':'Stocks','ETF':'ETFs & Funds','FUND':'ETFs & Funds','COMMODIT':'Commodities','REAL ESTATE':'Real Estate'};
+      const secMap={'STOCKS':'Stocks','ETF':'ETFs & Funds','FUND':'ETFs & Funds','BOND':'Bonds','TREASUR':'Bonds','COMMODIT':'Commodities','REAL ESTATE':'Real Estate'};
       let cur='Stocks';
       for(let i=1;i<lines.length;i++){
         const line=lines[i];
@@ -1857,6 +1884,6 @@ init();
 })();
 setDataInfoBar(
   'Default Dataset — 300+ Assets',
-  'Curated ROI data spanning 300+ global assets across Stocks, ETFs & Funds, Commodities, and Real Estate — covering returns at 1, 5, 10, 15, and 20-year horizons. <strong>Easily add your own datasets via CSV upload</strong>.',
+  'Curated ROI data spanning 300+ global assets across Stocks, ETFs &amp; Funds, Bonds, Commodities, and Real Estate — covering returns at 1, 5, 10, 15, and 20-year horizons. <strong>Easily add your own datasets via CSV upload</strong>.',
   false
 );

@@ -1,7 +1,7 @@
 // ===== STATE =====
 let allData = DEFAULT_DATA.slice();
-const SECTIONS = ['All','Stocks','ETFs & Funds','Commodities','Real Estate'];
-const SEC_ICONS = {'All':'🌐','Stocks':'📈','ETFs & Funds':'📦','Commodities':'🛢️','Real Estate':'🏘️'};
+const SECTIONS = ['All','Stocks','ETFs & Funds','Bonds','Commodities','Real Estate'];
+const SEC_ICONS = {'All':'🌐','Stocks':'📈','ETFs & Funds':'📦','Bonds':'🏦','Commodities':'🛢️','Real Estate':'🏘️'};
 const COLORS = ['#2563eb','#7c3aed','#f59e0b','#ef4444','#06b6d4','#10b981','#f97316','#ec4899','#a855f7','#14b8a6','#f43f5e','#84cc16','#fb923c','#22d3ee','#818cf8'];
 
 let chartTimelineYears = 20;

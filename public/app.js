@@ -362,6 +362,35 @@ function kpiGoTo(i){kpiIndex=i;renderKPICarousel();}
 
 let kpiPaused = false;
 
+// Touch swipe support for KPI carousel
+(function initKPITouch(){
+  let touchStartX=0, touchStartY=0, isDragging=false;
+  function getWrap(){ return document.getElementById('kpiTrack')?.parentElement; }
+  document.addEventListener('touchstart',e=>{
+    const wrap=getWrap(); if(!wrap||!wrap.contains(e.target))return;
+    touchStartX=e.touches[0].clientX;
+    touchStartY=e.touches[0].clientY;
+    isDragging=true;
+    kpiPause();
+  },{passive:true});
+  document.addEventListener('touchmove',e=>{
+    if(!isDragging)return;
+    const wrap=getWrap(); if(!wrap)return;
+    const dx=e.touches[0].clientX-touchStartX;
+    const dy=e.touches[0].clientY-touchStartY;
+    if(Math.abs(dx)>Math.abs(dy)) e.preventDefault();
+  },{passive:false});
+  document.addEventListener('touchend',e=>{
+    if(!isDragging)return;
+    isDragging=false;
+    const dx=e.changedTouches[0].clientX-touchStartX;
+    if(Math.abs(dx)>40){
+      if(dx<0) kpiNext(); else kpiPrev();
+    }
+    setTimeout(kpiResume,2000);
+  },{passive:true});
+})();
+
 function startKPITimer(){
   if(kpiTimer)clearInterval(kpiTimer);
   kpiTimer=setInterval(()=>{

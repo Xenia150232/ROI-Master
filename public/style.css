@@ -63,7 +63,7 @@ body{font-family:var(--font);font-size:14px;background:var(--bg);color:var(--tex
 .sec-tab:not(.active) .sec-count{background:var(--surface2);color:var(--faint)}
 
 /* KPI CAROUSEL */
-.kpi-carousel-wrap{position:relative;margin-bottom:20px;overflow:hidden;padding-top:1px}
+.kpi-carousel-wrap{position:relative;margin-bottom:20px;overflow:hidden;padding-top:1px;touch-action:pan-y}
 .kpi-track{display:flex;gap:12px;transition:transform .5s cubic-bezier(.4,0,.2,1);will-change:transform}
 .kpi-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px 18px;box-shadow:var(--shadow);flex:0 0 200px;min-width:200px;position:relative;overflow:visible;cursor:default}
 .kpi-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:var(--radius-lg) var(--radius-lg) 0 0;background:var(--card-accent,var(--primary))}

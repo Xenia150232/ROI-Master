@@ -586,6 +586,7 @@ function applyFilters(){
 function setSort(k){
   if(sortKey===k) sortDir*=-1; else{sortKey=k;sortDir=-1;}
   filteredData=sortArr(filteredData);
+  allTableData=sortArr(allTableData);
   currentPage=1; renderTable();
 }
 

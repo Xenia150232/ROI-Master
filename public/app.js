@@ -1247,13 +1247,14 @@ function renderMiniCharts(){
           legend:{display:false},
           tooltip:{
             ...tipBase,
+            yAlign:'top',
             callbacks:{
               title:ctx=>`${secs[ctx[0].dataIndex]} · ${sectionRange}Y`,
               label:ctx=>{
                 const i=ctx.dataIndex;
                 const med=ctx.parsed.x;
                 const lines=[` Median: $${med!=null?med.toLocaleString(undefined,{maximumFractionDigits:0}):'—'}`,` Assets: ${secCounts[i]}`,``,' Top assets:'];
-                (secTopAssets[i]||[]).forEach((r,ri)=>{
+                (secTopAssets[i]||[]).slice(0,5).forEach((r,ri)=>{
                   const v=r['v'+sectionRange]*seedMultiplier;
                   const vs=v>=1000000?'$'+(v/1000000).toFixed(2)+'M':v>=1000?'$'+(v/1000).toFixed(1)+'K':'$'+Math.round(v);
                   lines.push(` ${ri+1}. ${r.name} — ${vs}`);
@@ -1406,6 +1407,7 @@ function renderMiniCharts(){
           legend:{display:true,position:'bottom',labels:{color:tickColor,font:{size:10},padding:8,boxWidth:10,boxHeight:8}},
           tooltip:{
             ...tipBase,
+            yAlign:'top',
             callbacks:{
               title:ctx=>`${horizonLabels[ctx[0].dataIndex]} Median`,
               label:ctx=>{
@@ -1414,7 +1416,7 @@ function renderMiniCharts(){
                 const y=horizons[hi];
                 const med=ctx.parsed.y;
                 const lines=[` ${grpLabels[si]}: $${med!=null?med.toLocaleString(undefined,{maximumFractionDigits:0}):'—'}`,` Assets: ${grpCounts[si][hi]}`,``,' Top assets:'];
-                grpTop[si][hi].forEach((r,i)=>{
+                grpTop[si][hi].slice(0,5).forEach((r,i)=>{
                   const v=r['v'+y]*seedMultiplier;
                   const vs=v>=1000000?'$'+(v/1000000).toFixed(2)+'M':v>=1000?'$'+(v/1000).toFixed(1)+'K':'$'+Math.round(v);
                   lines.push(` ${i+1}. ${r.name} — ${vs}`);

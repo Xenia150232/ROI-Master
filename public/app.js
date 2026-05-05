@@ -1778,7 +1778,7 @@ function setDataInfoBar(fileName,description,isCustom){
     inputEl.placeholder='Add a description for this dataset…';
   } else {
     staticEl.style.display='';
-    staticEl.textContent=description;
+    staticEl.innerHTML=description;
     inputEl.style.display='none';
   }
 }

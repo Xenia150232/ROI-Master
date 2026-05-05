@@ -353,4 +353,4 @@ MIT — free to use, fork, and modify.
 
 ---
 
-ROI Master — See growth across investments and asset classes with advanced AI chat analysis and 40 data visualisations. Made by <a href="https://www.qaunain.com" target="_blank">Qaunain Meghjee</a>. <a href="https://github.com/QaunainM/ROI-Master" target="_blank">Clone this on GitHub</a>. Also check out <a href="https://www.CollabDraw.com" target="_blank">CollabDraw</a> — real-time collaborative design canvas.
+ROI Master — AI chat analysis and 40 data visualisations across investments and asset classes. Upload your own data. Made by <a href="https://www.qaunain.com" target="_blank">Qaunain Meghjee</a>. <a href="https://github.com/QaunainM/ROI-Master" target="_blank">Clone this on GitHub</a>. Also check out <a href="https://www.CollabDraw.com" target="_blank">CollabDraw</a> — real-time collaborative design canvas.

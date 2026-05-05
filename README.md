@@ -13,7 +13,7 @@ A tool that lets you see growth across investments and asset classes with advanc
 
 ## Features
 
-- **300+ pre-loaded assets** across Stocks, ETFs & Funds, Commodities, and Real Estate — ***easily add your own datasets*** via CSV upload
+- **300+ pre-loaded assets** across Stocks, ETFs & Funds, Bonds, Commodities, and Real Estate — ***easily add your own datasets*** via CSV upload
 - **Adjustable seed value** — change the initial investment amount and all figures update instantly
 - **Analyse with AI** — hover any of the 30 KPI tiles or any of the 7 data visualisations and a blue **Analyse with AI** button appears. Clicking it fires a pre-built, context-aware question directly into the chatbot — no typing needed. The question automatically reflects the active section, selected time horizon, and current data state
 - **Dynamic Tooltips** — hover any of the 30 KPI tiles or any of the 7 data visualisations to see a live tooltip listing the **top 10 assets** that make up that specific data point. Every tooltip is generated on the fly from the current filtered dataset and active time horizon, so it always reflects exactly what you're looking at
@@ -26,7 +26,7 @@ A tool that lets you see growth across investments and asset classes with advanc
   - Worst performer flags across each time horizon
 - **Data Visualisations** — 7 interactive charts built with Chart.js 4:
   - **Best Returns (Bar Chart)** — top 10 assets by return value at any selected time horizon (1Y–20Y), with switchable range tabs
-  - **Returns by Asset Class (Bar Chart)** — median return per asset class at any time horizon, letting you compare Stocks vs ETFs vs Commodities vs Real Estate at a glance
+  - **Returns by Asset Class (Bar Chart)** — median return per asset class at any time horizon, letting you compare Stocks vs ETFs vs Bonds vs Commodities vs Real Estate at a glance
   - **Avg Return Heatmap** — colour-coded grid (green = strong ROI, red = underperformance) showing average return per asset class across all five time horizons simultaneously, with hover tooltips showing top-10 asset breakdowns per cell
   - **Median Return by Horizon (Grouped Bar / Line)** — median value per asset class at each time horizon side by side, revealing how different classes compound differently over time
   - **Category Breakdown (Donut Chart)** — asset count or average return by category (top 15), switchable by time horizon

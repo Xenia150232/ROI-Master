@@ -1791,7 +1791,7 @@ function resetToDefault(){
   document.getElementById('seedInput').value=1000;
   document.getElementById('resetDataBtn').style.display='none';
   selectedCats=new Set(); selectedSecs=new Set(); selectedNames=[];
-  setDataInfoBar('Default Dataset — 300+ Assets','Curated ROI data spanning 300+ global assets across Stocks, ETFs & Funds, Commodities, and Real Estate — covering returns at 1, 5, 10, 15, and 20-year horizons. Easily add your own datasets via CSV upload.',false);
+  setDataInfoBar('Default Dataset — 300+ Assets','Curated ROI data spanning 300+ global assets across Stocks, ETFs & Funds, Commodities, and Real Estate — covering returns at 1, 5, 10, 15, and 20-year horizons. <strong>Easily add your own datasets via CSV upload</strong>.',false);
   buildSidebar();
   applySection('All'); updateKPIs();
 }
@@ -1856,6 +1856,6 @@ init();
 })();
 setDataInfoBar(
   'Default Dataset — 300+ Assets',
-  'Curated ROI data spanning 300+ global assets across Stocks, ETFs & Funds, Commodities, and Real Estate — covering returns at 1, 5, 10, 15, and 20-year horizons. Easily add your own datasets via CSV upload.',
+  'Curated ROI data spanning 300+ global assets across Stocks, ETFs & Funds, Commodities, and Real Estate — covering returns at 1, 5, 10, 15, and 20-year horizons. <strong>Easily add your own datasets via CSV upload</strong>.',
   false
 );

@@ -32,7 +32,7 @@ A tool that lets you see growth across investments and asset classes with advanc
   - **Category Breakdown (Donut Chart)** — asset count or average return by category (top 15), switchable by time horizon
   - **Top Categories by ROI (Horizontal Bar)** — average return ranked by category tag at any selected horizon, showing which sub-categories (AI, EV, Payments, etc.) lead
   - **ROI Growth Chart (Line Chart)** — interactive multi-asset comparison chart that appears when you select rows in the table; supports any number of assets simultaneously across 1Y–20Y horizons with a full-width expand mode
-- **Full-featured Assets table** —sSortable, searchable, paginated list with filters for time ranges, asset classes, categories, and more. Select assets to generate a comparison chart, summaries and score cards – all visible to the AI Analyst
+- **Full-featured Assets table** —sortable, searchable, paginated list with filters for time ranges, asset classes, categories, and more. Select assets to generate a comparison chart, summaries and score cards – all visible to the AI Analyst
 - **Filter & search** — filter by asset class, category tags, or free-text search across all 300+ assets
 - **Exclude rows** — temporarily remove assets from charts without deleting them
 - **CSV import** — upload your own CSV to replace the default dataset

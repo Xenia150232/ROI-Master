@@ -608,7 +608,7 @@ function renderTable(){
   document.getElementById('tableHead').innerHTML=`
     <th style="width:32px;min-width:32px"><input type="checkbox" ${_allPageSel?'checked':''} onclick="selAll(this)" title="Select/deselect page"></th>
     <th style="width:260px;min-width:180px" class="${sortKey==='name'?'sorted':''}" onclick="setSort('name')">Asset <span class="arr">${sortKey==='name'?(sortDir===-1?'▼':'▲'):'▼'}</span></th>
-    ${showSection?'<th style="width:90px;min-width:70px">Section</th>':''}
+    ${showSection?'<th style="width:90px;min-width:70px">Asset Class</th>':''}
     ${YEARS.map(y=>`<th style="width:90px;min-width:76px" class="${sortKey==='v'+y?'sorted':''}" onclick="setSort('v${y}')">${y==='1'?'1 Yr':y+' Yrs'} <span class="arr">${sortKey==='v'+y?(sortDir===-1?'▼':'▲'):'▼'}</span></th>`).join('')}
   `;
   const start=(currentPage-1)*PAGE_SIZE;

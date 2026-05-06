@@ -1523,10 +1523,85 @@
       return items.length >= 2 ? { type: 'ranked', items } : null;
     }
 
-    // ── Priority 2: scan full text for numbered/bulleted lines with $ values ─
-    const items = [];
+    // ── Priority 2: prose time-series scan (single or multi-asset over horizons) ─
+    // Handles patterns like:
+    //   "$7,000 over 10 years"  "$32,000 at 20yr"  "grew to $32,000 at 20yr"
+    //   "$1,120 at 1yr ... $32,000 at 20yr"  "returned $16,000 over 15yr"
+    {
+      const horizonOrder = ['1yr','5yr','10yr','15yr','20yr'];
+      const horizonMap = { '1':1, '5':5, '10':10, '15':15, '20':20 };
+
+      // Pattern: $X,XXX at/over/by/for N yr/year OR N yr/year: $X,XXX
+      const horizonValRe = /\$\s*([\d,]+)(?:\s+(?:at|over|by|for)\s+(\d+)\s*(?:yr|year)|\s+(?:(?:at|over|by|for)\s+)?(\d+)\s*(?:yr|year))|(\d+)\s*(?:yr|year)[^.]*?\$\s*([\d,]+)/gi;
+
+      // Also catch simple "at Nyr" pattern: $X at Nyr
+      const atHorizonRe = /\$\s*([\d,]+)\s+(?:at|over|by|for|in)\s+(\d+)\s*[-–]?\s*(?:yr|year)/gi;
+      // And "Nyr[: ]$X" pattern
+      const horizonFirstRe = /\b(\d+)\s*[-–]?\s*(?:yr|year)s?[:\s]+\$\s*([\d,]+)/gi;
+      // And "grew to $X at Nyr" / "returned $X over N years"
+      const grewToRe = /(?:grew to|reached|returned?|hit|was|is|stands? at|surged? to|compounded? to|ends? at|finish(?:es)? at)\s+\$\s*([\d,]+)[^.,(]*?(?:at|over|by|after|in)\s+(\d+)\s*[-–]?\s*(?:yr|year)/gi;
+
+      const found = {};
+
+      const scanForHorizons = (src) => {
+        let m;
+        // Pattern: $X at/over Nyr
+        const re1 = /\$\s*([\d,]+)\s+(?:at|over|by|for|in)\s+(\d+)\s*[-–]?\s*(?:yr|year)/gi;
+        while ((m = re1.exec(src)) !== null) {
+          const val = parseFloat(m[1].replace(/,/g, ''));
+          const key = m[2] + 'yr';
+          if (horizonOrder.includes(key) && val > 0 && !found[key]) found[key] = val;
+        }
+        // Pattern: $X (Nx) over Nyr — e.g. "$32,000 (32x) over 20yr"
+        const re2 = /\$\s*([\d,]+)\s*\([^)]+\)\s+(?:at|over|by|for|in)\s+(\d+)\s*[-–]?\s*(?:yr|year)/gi;
+        while ((m = re2.exec(src)) !== null) {
+          const val = parseFloat(m[1].replace(/,/g, ''));
+          const key = m[2] + 'yr';
+          if (horizonOrder.includes(key) && val > 0 && !found[key]) found[key] = val;
+        }
+        // Pattern: Nyr: $X  or  N-year: $X
+        const re3 = /\b(\d+)\s*[-–]?\s*(?:yr|year)s?[\s:,]+\$\s*([\d,]+)/gi;
+        while ((m = re3.exec(src)) !== null) {
+          const key = m[1] + 'yr';
+          const val = parseFloat(m[2].replace(/,/g, ''));
+          if (horizonOrder.includes(key) && val > 0 && !found[key]) found[key] = val;
+        }
+        // Pattern: grew/returned to $X at/over Nyr
+        const re4 = /(?:grew(?:\s+from\s+\$[\d,]+)?\s+to|reached|returned?|hit|surged?\s+to|compounded?\s+to)\s+\$\s*([\d,]+)[^.,\n()]{0,30}?(?:at|over|after|in)\s+(\d+)\s*[-–]?\s*(?:yr|year)/gi;
+        while ((m = re4.exec(src)) !== null) {
+          const val = parseFloat(m[1].replace(/,/g, ''));
+          const key = m[2] + 'yr';
+          if (horizonOrder.includes(key) && val > 0 && !found[key]) found[key] = val;
+        }
+      };
+
+      scanForHorizons(text);
+
+      const points = horizonOrder.filter(k => found[k]).map(k => ({ label: k, val: found[k] }));
+      if (points.length >= 2) {
+        return { type: 'line', series: [{ name: null, points }] };
+      }
+    }
+
+    // ── Priority 2b: scan bullets for asset names + dollar values (ranked) ──────
     const lines = text.split('\n');
+    const items = [];
     const PROSE_STOP = /^(the|a|an|across|at|by|and|or|in|on|for|of|yr|year|return|invest|over|most|top|best|worst|all|every|with|this|that|these|those|from|its|so|is|are|was|were|will|has|have|had|be|been|being|they|their|there|then|when|where|which|what|how|why|who|than|more|less|both|each|other|total|gain|since|while|also|even|only|just|not|no|any|our|we|you|your|him|her|it|up|down|out|into|about|like|such|per|as|if|asia|europe|out)$/i;
+
+    // Extract asset name from a prose bullet — looks for bold (**Name**) or ticker (NAME) first
+    function extractProseName(line) {
+      // Bold text: **Name** or **Name (TICK)**
+      const boldMatch = line.match(/\*\*([^*]{2,35}?)\*\*/);
+      if (boldMatch) {
+        let n = boldMatch[1].replace(/\s*\([A-Z0-9.]{1,8}\)\s*$/, '').trim();
+        if (n.length >= 2 && !PROSE_STOP.test(n)) return n;
+      }
+      // Ticker pattern: WORD (TICK) at start of content
+      const tickerMatch = line.replace(/^[-•\d.\)]\s*/, '').match(/^([A-Z][a-zA-Z\s&.,']{1,30}?)\s*\([A-Z]{1,6}\)/);
+      if (tickerMatch) return tickerMatch[1].trim();
+      // Fallback: extractName
+      return extractName(line);
+    }
 
     for (const raw of lines) {
       const line = raw.trim();
@@ -1534,7 +1609,7 @@
       if (!/^\d+[\.\)]\s+/.test(line) && !/^[-•]\s+/.test(line)) continue;
       const val = extractValue(line);
       if (val < 100) continue;
-      const name = extractName(line);
+      const name = extractProseName(line);
       if (!name || name.length < 3) continue;
       if (PROSE_STOP.test(name)) continue;
       if (!items.find(x => x.name === name) && items.length < 10) {
@@ -1543,25 +1618,6 @@
     }
 
     if (items.length >= 2) return { type: 'ranked', items };
-
-    // ── Priority 2b: inline prose time-series scan ────────────────────────────
-    // Catches patterns like "$2,000 over 5yr" or "$32,000 over 20 years" in a single bullet.
-    {
-      const horizonOrder = ['1yr','5yr','10yr','15yr','20yr'];
-      const horizonPattern = /\$\s*([\d,]+)\s+over\s+(\d+)\s*(?:yr|year)/gi;
-      const found = {};
-      let m;
-      while ((m = horizonPattern.exec(text)) !== null) {
-        const val = parseFloat(m[1].replace(/,/g, ''));
-        const yrs = parseInt(m[2], 10);
-        const key = yrs + 'yr';
-        if (horizonOrder.includes(key) && val > 0) found[key] = val;
-      }
-      const points = horizonOrder.filter(k => found[k]).map(k => ({ label: k, val: found[k] }));
-      if (points.length >= 2) {
-        return { type: 'line', series: [{ name: null, points }] };
-      }
-    }
 
     // ── Priority 3: comparison table (lines with "vs") ────────────────────────
     const rows = [];

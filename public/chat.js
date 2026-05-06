@@ -690,29 +690,47 @@
       .replace(/mid\s*cap/g, 'midcap')
       .replace(/large\s*cap/g, 'largecap');
 
-    // Synonym map — maps query terms to category/name substrings to search
+    // Synonym map — maps query term → array of substrings to match in name OR category
     const SYNONYMS = {
-      semiconductors: ['semiconductor', 'semiconductors'],
-      chips: ['semiconductor', 'semiconductors'],
-      semis: ['semiconductor', 'semiconductors'],
-      realestate: ['real estate'],
-      property: ['real estate'],
+      // Metals & commodities
+      gold:            ['gold etf', 'gold miner', 'gold ('],
+      silver:          ['silver etf', 'silver miner', 'silver ('],
+      miners:          ['miner'],
+      miner:           ['miner'],
+      mining:          ['miner', 'mining'],
+      uranium:         ['uranium'],
+      copper:          ['copper'],
+      lithium:         ['lithium'],
+      platinum:        ['platinum'],
+      palladium:       ['palladium'],
+      // Sectors
+      semiconductors:  ['semiconductor'],
+      semiconductor:   ['semiconductor'],
+      chips:           ['semiconductor'],
+      semis:           ['semiconductor'],
+      realestate:      ['real estate'],
+      property:        ['real estate'],
+      reit:            ['real estate', 'reit'],
       emergingmarkets: ['emerging market'],
-      em: ['emerging market'],
-      healthcare: ['health', 'pharma', 'biotech', 'medical'],
-      pharma: ['pharma', 'healthcare'],
-      biotech: ['biotech', 'healthcare'],
-      crypto: ['crypto', 'bitcoin', 'ethereum', 'blockchain'],
-      bitcoin: ['bitcoin', 'crypto'],
-      gold: ['gold'],
-      silver: ['silver'],
-      oil: ['oil', 'energy', 'petroleum'],
-      energy: ['energy', 'oil'],
-      bonds: ['bond', 'fixed income', 'treasury'],
-      tech: ['technology', 'software', 'cloud'],
-      ai: ['artificial intelligence', 'ai', 'machine learning'],
-      ev: ['ev', 'electric vehicle', 'automotive'],
-      cleanenergy: ['clean energy', 'renewable', 'solar', 'wind'],
+      healthcare:      ['health', 'pharma', 'biotech', 'medical'],
+      pharma:          ['pharma', 'healthcare'],
+      biotech:         ['biotech'],
+      // Crypto
+      crypto:          ['crypto', 'bitcoin', 'ethereum', 'blockchain'],
+      bitcoin:         ['bitcoin', 'crypto'],
+      ethereum:        ['ethereum'],
+      blockchain:      ['blockchain', 'crypto'],
+      // Energy
+      oil:             ['oil', 'energy', 'petroleum'],
+      energy:          ['energy', 'oil', 'solar', 'wind'],
+      cleanenergy:     ['clean energy', 'renewable', 'solar', 'wind'],
+      // Finance & macro
+      bonds:           ['bond', 'fixed income', 'treasury'],
+      bond:            ['bond', 'treasury'],
+      treasury:        ['treasury', 'bond'],
+      tech:            ['technology', 'software', 'cloud'],
+      ai:              ['artificial intelligence', 'ai', 'machine learning'],
+      ev:              ['ev', 'electric vehicle', 'automotive'],
     };
 
     const stopWords = new Set(['the','and','vs','versus','against','between','or','is','are',
@@ -723,32 +741,37 @@
     const keywords = normalised.split(/\s+/).map(w => w.replace(/[^a-z0-9]/g, '')).filter(w => w.length > 1 && !stopWords.has(w));
 
     const relevantSet = new Set();
+    const index = getAssetIndex(assets);
 
-    const addIfCatOrNameMatches = (asset, terms) => {
-      const name = (asset.name || '').toLowerCase();
-      const cat = (asset.category || asset.section || asset.cat || '').toLowerCase();
+    const addByTerms = (terms) => {
       for (const term of terms) {
-        if (name.includes(term) || cat.includes(term)) { relevantSet.add(asset); return; }
+        // Split multi-word terms and look up each word in index
+        const words = term.split(/\s+/).map(w => w.replace(/[^a-z0-9]/g, ''));
+        if (words.length === 1) {
+          (index.get(words[0]) || []).forEach(a => relevantSet.add(a));
+        } else {
+          // Multi-word: asset must match ALL words
+          const sets = words.map(w => index.get(w) || new Set());
+          const [first, ...rest] = sets;
+          for (const asset of first) {
+            if (rest.every(s => s.has(asset))) relevantSet.add(asset);
+          }
+        }
       }
     };
 
     for (const kw of keywords) {
-      // Check synonym map first
       const synonymTerms = SYNONYMS[kw];
-      if (synonymTerms) {
-        for (const asset of assets) addIfCatOrNameMatches(asset, synonymTerms);
-        continue;
-      }
-      // Direct match against name, ticker, category
-      for (const asset of assets) {
-        const name = (asset.name || '').toLowerCase();
-        const ticker = (name.match(/\(([^)]+)\)/) || [])[1] || '';
-        const cat = (asset.category || asset.section || asset.cat || '').toLowerCase();
-        if (name.includes(kw) || ticker === kw || cat.includes(kw) ||
-            new RegExp(`(^|\\s|\\()${kw}`).test(name)) {
-          relevantSet.add(asset);
-        }
-      }
+      if (synonymTerms) { addByTerms(synonymTerms); continue; }
+
+      // Stem: strip trailing 's' for plurals
+      const stem = kw.endsWith('s') && kw.length > 3 ? kw.slice(0, -1) : null;
+      const stemTerms = stem ? SYNONYMS[stem] : null;
+      if (stemTerms) { addByTerms(stemTerms); continue; }
+
+      // Direct index lookup (also try stem)
+      (index.get(kw) || []).forEach(a => relevantSet.add(a));
+      if (stem) (index.get(stem) || []).forEach(a => relevantSet.add(a));
     }
 
     const relevantAssets = [...relevantSet].map(pickAssetFields);
@@ -834,6 +857,38 @@
     if (typeof window.allData !== 'undefined') return window.allData;
     return null;
   }
+
+  // ── Pre-built inverted index: token → Set of matching assets ──────────────
+  // Built once on first use and reused for all subsequent queries.
+  let _assetIndex = null;
+
+  function getAssetIndex(assets) {
+    if (_assetIndex) return _assetIndex;
+    _assetIndex = new Map();
+    const add = (token, asset) => {
+      if (!_assetIndex.has(token)) _assetIndex.set(token, new Set());
+      _assetIndex.get(token).add(asset);
+    };
+    for (const asset of assets) {
+      const name = (asset.name || '').toLowerCase();
+      const cat  = (asset.category || asset.section || asset.cat || '').toLowerCase();
+      // Index every word from name and category
+      for (const word of (name + ' ' + cat).split(/[\s,]+/)) {
+        const w = word.replace(/[^a-z0-9]/g, '');
+        if (w.length > 1) add(w, asset);
+      }
+      // Also index ticker symbol (text inside parentheses)
+      const tickerMatch = name.match(/\(([^)]+)\)/);
+      if (tickerMatch) {
+        for (const t of tickerMatch[1].toLowerCase().split(/[/\s]+/)) {
+          if (t.length > 0) add(t, asset);
+        }
+      }
+    }
+    return _assetIndex;
+  }
+
+  function invalidateAssetIndex() { _assetIndex = null; }
 
   function fmt(v) {
     if (v == null || isNaN(v)) return 'N/A';

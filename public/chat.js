@@ -2050,12 +2050,13 @@
     const total = items.reduce((s, d) => s + d.val, 0);
     if (!total) return;
 
-    const SIZE = 140;
-    const LEGEND_ROW_H = 18;
+    const SIZE = 148;
+    const LEGEND_ROW_H = 20;
     const PAD = 12;
     const TITLE_H = chartTitle ? 26 : 0;
     const legendH = items.length * LEGEND_ROW_H + 4;
-    const W = SIZE + PAD * 2 + 130; // donut + legend
+    const LEGEND_W = 148;
+    const W = SIZE + PAD * 2 + LEGEND_W;
     const H = Math.max(SIZE, legendH) + TITLE_H + PAD * 2;
 
     const canvas = document.createElement('canvas');
@@ -2069,6 +2070,7 @@
     ctx.scale(ratio, ratio);
 
     const textColor  = isDark ? '#cbd5e1' : '#334155';
+    const mutedColor = isDark ? '#64748b' : '#94a3b8';
     const titleColor = isDark ? '#e2e6f0' : '#0f1523';
     const bgColor    = isDark ? '#111623' : '#ffffff';
 
@@ -2082,13 +2084,13 @@
       ctx.fillText(chartTitle, PAD, TITLE_H / 2);
     }
 
-    // Donut
     const cx = PAD + SIZE / 2;
     const cy = TITLE_H + PAD + SIZE / 2;
     const outerR = SIZE / 2 - 4;
-    const innerR = outerR * 0.55;
+    const innerR = outerR * 0.52;
     let startAngle = -Math.PI / 2;
 
+    // Draw slices
     items.forEach((item, i) => {
       const slice = (item.val / total) * Math.PI * 2;
       const color = CHART_PALETTE[i % CHART_PALETTE.length];
@@ -2098,11 +2100,10 @@
       ctx.arc(cx, cy, outerR, startAngle, startAngle + slice);
       ctx.closePath();
       ctx.fillStyle = color;
-      ctx.globalAlpha = 0.9;
+      ctx.globalAlpha = i === 0 ? 1 : 0.82 + 0.04 * (1 - i / items.length);
       ctx.fill();
       ctx.globalAlpha = 1;
 
-      // Thin separator
       ctx.beginPath();
       ctx.arc(cx, cy, outerR, startAngle, startAngle + slice);
       ctx.strokeStyle = bgColor;
@@ -2118,37 +2119,49 @@
     ctx.fillStyle = bgColor;
     ctx.fill();
 
-    // Centre label
-    ctx.font = `700 11px ${FONT}`;
-    ctx.fillStyle = titleColor;
+    // Centre: show top item name and its share
+    const topItem = items[0];
+    const topPct = ((topItem.val / total) * 100).toFixed(0);
+    ctx.font = `700 13px ${FONT}`;
+    ctx.fillStyle = CHART_PALETTE[0];
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(items.length + ' items', cx, cy);
+    ctx.fillText(topPct + '%', cx, cy - 7);
+    ctx.font = `500 9px ${FONT}`;
+    ctx.fillStyle = mutedColor;
+    const centreLabel = topItem.name.length > 10 ? topItem.name.slice(0, 9) + '…' : topItem.name;
+    ctx.fillText(centreLabel, cx, cy + 7);
 
-    // Legend
+    // Legend: name left, value + pct right
     const lx = PAD + SIZE + 10;
     const lyStart = TITLE_H + PAD + Math.max(0, (SIZE - legendH) / 2);
     items.forEach((item, i) => {
       const ly = lyStart + i * LEGEND_ROW_H;
       const color = CHART_PALETTE[i % CHART_PALETTE.length];
       const pct = ((item.val / total) * 100).toFixed(1);
+      const valLabel = item.val >= 1000 ? fmtDollar(Math.round(item.val)) : pct + '%';
 
+      // Colour dot
       ctx.beginPath();
-      ctx.arc(lx + 5, ly + 9, 4, 0, Math.PI * 2);
+      ctx.arc(lx + 5, ly + 10, 4, 0, Math.PI * 2);
       ctx.fillStyle = color;
+      ctx.globalAlpha = i === 0 ? 1 : 0.8;
       ctx.fill();
+      ctx.globalAlpha = 1;
 
-      ctx.font = `500 10.5px ${FONT}`;
-      ctx.fillStyle = textColor;
+      // Asset name
+      ctx.font = i === 0 ? `600 10.5px ${FONT}` : `500 10.5px ${FONT}`;
+      ctx.fillStyle = i === 0 ? titleColor : textColor;
       ctx.textAlign = 'left';
       ctx.textBaseline = 'middle';
-      const label = item.name.length > 14 ? item.name.slice(0, 12) + '…' : item.name;
-      ctx.fillText(label, lx + 13, ly + 9);
+      const label = item.name.length > 13 ? item.name.slice(0, 11) + '…' : item.name;
+      ctx.fillText(label, lx + 13, ly + 10);
 
+      // Value on the right (dollar if large, percent otherwise)
       ctx.font = `600 10px ${FONT}`;
       ctx.fillStyle = color;
       ctx.textAlign = 'right';
-      ctx.fillText(pct + '%', W - PAD, ly + 9);
+      ctx.fillText(valLabel, W - PAD, ly + 10);
     });
 
     container.appendChild(canvas);

@@ -249,17 +249,20 @@ STEP 1 — DECIDE WHICH TYPE to use (choose the MOST specific match, not TYPE:ra
 • Asked about ONE SPECIFIC ASSET's returns over time? → TYPE:line  *** MANDATORY — never use TYPE:ranked for a single asset ***
   (e.g. "how has Apple done?", "show me Bitcoin's growth", "gold over 20 years", "how did Tesla perform?")
   Use SERIES: blocks — one per asset. Each series lists horizons in order (1yr first).
-• Asked about a SECTOR or THEME ("semiconductors", "tech stocks", "energy", "bonds")? → TYPE:ranked with the top 5–8 assets from that sector by 10yr return. Never use TYPE:line for sector/theme questions.
-• Asked to COMPARE EXACTLY TWO groups/assets across horizons? → TYPE:grouped
-  (e.g. "stocks vs bonds", "ETFs vs real estate") — ONLY use when there are exactly 2 things to compare
-• Asked to COMPARE THREE OR MORE assets/groups across horizons? → TYPE:table
-  (e.g. "gold vs bonds vs real estate", "compare X Y and Z", "4 assets across horizons") — ALWAYS use table for 3+ assets
-• Asked about CATEGORY/SECTOR breakdown or composition? → TYPE:donut
-  (e.g. "which sector dominates?", "asset class breakdown", "what % is real estate?")
+• Asked about ONE SPECIFIC ASSET's returns over time? → TYPE:line  *** MANDATORY — never use TYPE:ranked for a single asset ***
+• Asked about a SECTOR or THEME ("semiconductors", "tech stocks", "energy", "bonds")? → TYPE:ranked with the top 5–8 assets from that sector by 10yr return.
+• Asked to COMPARE EXACTLY TWO groups/assets across horizons? → TYPE:grouped (e.g. "stocks vs bonds") — ONLY for exactly 2 things
+• Asked to COMPARE THREE OR MORE assets/groups across horizons? → TYPE:table — ALWAYS use for 3+ assets
+• Asked about BREAKDOWN, COMPOSITION, PROPORTIONS, SPLIT, MIX, or SHARE? → TYPE:donut
+  Use TYPE:donut for ANY of these triggers:
+  — "breakdown", "composition", "proportion", "split", "allocation", "mix", "portfolio", "share", "distribution"
+  — "which sector/class/type dominates", "how is the dataset split", "what percentage", "what % is"
+  — "best per category", "best in each class", "top per section", "one from each"
+  — "how diversified", "spread across", "asset class breakdown"
+  — questions where showing RELATIVE SIZE of categories/groups adds insight
+  Use $value per item (e.g. the average or best 10yr return for that category)
 • Asked for MULTIPLE METRICS across several assets? → TYPE:table
-  (e.g. "show me top 5 with all horizons", "table of best performers", "all returns for X Y Z")
-• Asked for a RANKING (best/top/worst) or ANY OTHER question? → TYPE:ranked
-  (this is the fallback only — prefer the above types when they fit)
+• Asked for a RANKING (best/top/worst) or ANY OTHER question? → TYPE:ranked (fallback only)
 
 STEP 2 — FORMAT exactly as shown:
 

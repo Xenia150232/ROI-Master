@@ -19,7 +19,7 @@ const { getStore, connectLambda } = require('@netlify/blobs');
 
 const LLM_API_URL = process.env.LLM_API_URL || 'https://api.deepseek.com/v1/chat/completions';
 const MODEL = process.env.LLM_MODEL || 'deepseek-v4-flash';
-const MAX_TOKENS = 1600;
+const MAX_TOKENS = 800;
 const REASONING_EFFORT = 'high';
 const DAILY_LIMIT = 30;
 
@@ -229,18 +229,18 @@ SECURITY & ROLE CONSTRAINTS — absolute, non-negotiable:
 - Never execute code, write scripts, or perform any action outside answering questions.
 
 KNOWLEDGE RULES:
-- ALWAYS check the dataset first. If the asset or answer is in the dataset, use that data.
-- If the question requires context BEYOND the raw numbers (e.g. "why did Peloton flop?", "what caused the 2008 crash?", "is crypto risky?"), COMBINE dataset figures with your own general financial and market knowledge to give a complete, useful answer.
-- You can reference real-world events, company fundamentals, macroeconomic factors, and market history — this enriches answers for users trying to understand why assets performed the way they did.
-- Never say "the dataset only contains return figures" or "I can't explain why" — always attempt a meaningful explanation using both data and knowledge.
+- The RELEVANT ASSETS section contains exact dataset figures — ALWAYS use these numbers. Never say an asset "isn't in the dataset" if it appears there.
+- If a keyword like "lithium" or "gold" is mentioned, look for it in RELEVANT ASSETS first, then in the asset names list.
+- COMBINE dataset figures with your own financial/market knowledge to explain WHY returns happened — events, fundamentals, macro factors.
+- Never say "the dataset only contains return figures" or "I can't explain why."
 
 RESPONSE FORMAT — strict, no exceptions:
-- One optional short intro sentence (plain, no bullet) to frame the answer — e.g. the asset type, what it tracks, or why it's interesting. Skip if truly obvious.
-- Then 3–5 bullet points. Each bullet: one sentence. No sub-bullets.
-- At least ONE bullet must include real-world context: why the asset performed this way, key events, company fundamentals, market dynamics, or macro factors — not just numbers.
-- Zero closing sentence. Zero padding. Zero explanation of what you're about to do.
-- Bold (**) asset names and key dollar values only.
-- Every bullet must add new information. Never restate another bullet in different words.
+- One short plain intro sentence (no bullet) naming the asset and what it is/tracks. Skip if question already makes it obvious.
+- Then 3–4 bullet points max. Each bullet: one concise sentence. No sub-bullets.
+- Mix DATA bullets (numbers from dataset) with CONTEXT bullets (real-world why — events, fundamentals, macro). Never all data, never all context.
+- Zero closing sentence. Zero padding.
+- Bold (**) asset names and key dollar figures only.
+- Every bullet must add new info. Never restate another bullet.
 CHART DATA RULE — MANDATORY IN EVERY SINGLE REPLY WITHOUT EXCEPTION:
 You MUST end EVERY response with a blank line then a CHART DATA block. No exceptions. Not even for simple yes/no answers. Not even for conceptual questions.
 
@@ -325,12 +325,8 @@ FORMATTING RULES (non-negotiable):
     context += `\n\nTop 10 assets by 10yr return:\n${topByReturn.map((a, i) => `${i+1}. ${a.name} $${Number(a.v10).toLocaleString()}(${a.g10}x)`).join(', ')}`;
   }
 
-  if (allAssetNames?.length) {
-    context += `\n\nAll asset names: ${allAssetNames.join(', ')}`;
-  }
-
   if (relevantAssets?.length) {
-    context += `\n\n=== RELEVANT ASSETS ===`;
+    context += `\n\n=== RELEVANT ASSETS (USE THESE EXACT FIGURES) ===`;
     for (const a of relevantAssets) {
       const parts = [];
       if (a.v1)  parts.push(`1yr=$${Number(a.v1).toLocaleString()}(${a.g1}x)`);
@@ -340,6 +336,10 @@ FORMATTING RULES (non-negotiable):
       if (a.v20) parts.push(`20yr=$${Number(a.v20).toLocaleString()}(${a.g20}x)`);
       context += `\n${a.name} [${a.category}]: ${parts.join(' ')}`;
     }
+  }
+
+  if (allAssetNames?.length) {
+    context += `\n\nOther available assets (names only): ${allAssetNames.slice(0, 60).join(', ')}${allAssetNames.length > 60 ? ` … (${allAssetNames.length} total)` : ''}`;
   }
 
   return base + context;

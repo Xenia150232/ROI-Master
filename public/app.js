@@ -1168,7 +1168,11 @@ function renderMiniCharts(){
   if(top10ChartInst){top10ChartInst.destroy();top10ChartInst=null;}
   const yrLabel=top10Range===1?'1-year':top10Range+'-year';
   if(c1&&top10.length){
-    document.getElementById('top10Sub').textContent=`Top ${top10.length} assets by ${yrLabel} value${top10Expanded?' · expanded':''}`;
+    const top10Max=top10[0][vKey]*seedMultiplier;
+    const top10Min=top10[top10.length-1][vKey]*seedMultiplier;
+    // Use log scale when the top value is more than 100x the bottom value (extreme outlier squashes bars)
+    const useLogScale=top10Max/top10Min>100;
+    document.getElementById('top10Sub').textContent=`Top ${top10.length} assets by ${yrLabel} value${top10Expanded?' · expanded':''}${useLogScale?' · log scale':''}`;
     top10ChartInst=new Chart(c1,{
       type:'bar',
       plugins:[tooltipShadowPlugin],
@@ -1202,7 +1206,16 @@ function renderMiniCharts(){
         },
         scales:{
           x:{grid:{display:false},ticks:{color:tickColor,font:{size:10},maxRotation:35}},
-          y:{grid:{color:gridColor},ticks:{color:tickColor,font:{size:10},callback:v=>v>=1000000?'$'+(v/1000000).toFixed(1)+'M':v>=1000?'$'+(v/1000).toFixed(0)+'K':'$'+v}}
+          y:useLogScale?{
+            type:'logarithmic',
+            grid:{color:gridColor},
+            ticks:{color:tickColor,font:{size:10},callback:v=>{
+              const log=Math.log10(v);
+              if(log===Math.floor(log)||[500,5000,50000,500000,5000000,50000000].includes(v))
+                return v>=1000000?'$'+(v/1000000).toFixed(v>=10000000?0:1)+'M':v>=1000?'$'+(v/1000).toFixed(0)+'K':'$'+v;
+              return null;
+            }}
+          }:{grid:{color:gridColor},ticks:{color:tickColor,font:{size:10},callback:v=>v>=1000000?'$'+(v/1000000).toFixed(1)+'M':v>=1000?'$'+(v/1000).toFixed(0)+'K':'$'+v}}
         }
       }
     });

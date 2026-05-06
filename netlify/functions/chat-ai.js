@@ -249,8 +249,10 @@ STEP 1 — DECIDE WHICH TYPE to use (choose the MOST specific match, not TYPE:ra
 
 • Asked about a SINGLE ASSET's returns over time? → TYPE:line
   (e.g. "how has Apple done?", "show me Bitcoin's growth", "gold over 20 years")
-• Asked to COMPARE two groups/assets across horizons? → TYPE:grouped
-  (e.g. "stocks vs bonds", "ETFs vs real estate", "compare X and Y")
+• Asked to COMPARE EXACTLY TWO groups/assets across horizons? → TYPE:grouped
+  (e.g. "stocks vs bonds", "ETFs vs real estate") — ONLY use when there are exactly 2 things to compare
+• Asked to COMPARE THREE OR MORE assets/groups across horizons? → TYPE:table
+  (e.g. "gold vs bonds vs real estate", "compare X Y and Z", "4 assets across horizons") — ALWAYS use table for 3+ assets
 • Asked about CATEGORY/SECTOR breakdown or composition? → TYPE:donut
   (e.g. "which sector dominates?", "asset class breakdown", "what % is real estate?")
 • Asked for MULTIPLE METRICS across several assets? → TYPE:table
@@ -281,7 +283,7 @@ TYPE:donut
 1. Category Name — $X,XXX
 2. Category Name — $X,XXX
 
-TYPE:grouped — pipe-separated rows, HEADERS names the two groups being compared:
+TYPE:grouped — pipe-separated rows, HEADERS names the TWO (and only two) groups being compared. NEVER use this for 3+ assets:
 CHART DATA:
 TYPE:grouped
 HEADERS: Horizon | Group A Name | Group B Name
@@ -289,12 +291,12 @@ HEADERS: Horizon | Group A Name | Group B Name
 5yr | $X,XXX | $X,XXX
 10yr | $X,XXX | $X,XXX
 
-TYPE:table — pipe-separated rows with HEADERS row required:
+TYPE:table — pipe-separated rows with HEADERS row required. Use for 3+ assets being compared, or multiple metrics:
 CHART DATA:
 TYPE:table
-HEADERS: Asset | 1yr | 5yr | 10yr
-Asset Name | $X,XXX | $X,XXX | $X,XXX
-Asset Name | $X,XXX | $X,XXX | $X,XXX
+HEADERS: Asset | 1yr | 5yr | 10yr | 15yr | 20yr
+Asset Name | $X,XXX | $X,XXX | $X,XXX | $X,XXX | $X,XXX
+Asset Name | $X,XXX | $X,XXX | $X,XXX | $X,XXX | $X,XXX
 
 FORMATTING RULES (non-negotiable):
 - 3 to 8 rows/items only

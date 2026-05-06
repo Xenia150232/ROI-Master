@@ -1391,24 +1391,34 @@
         //         Row | $valA | $valB
         const headerLine = dataLines.find(l => /^HEADERS?:/i.test(l));
         let labelA = 'Group A', labelB = 'Group B';
+        let headerCols = null;
         if (headerLine) {
-          const cols = headerLine.replace(/^HEADERS?:\s*/i, '').split('|').map(s => s.trim());
-          if (cols[1]) labelA = cols[1];
-          if (cols[2]) labelB = cols[2];
+          headerCols = headerLine.replace(/^HEADERS?:\s*/i, '').split('|').map(s => s.trim());
+          if (headerCols[1]) labelA = headerCols[1];
+          if (headerCols[2]) labelB = headerCols[2];
         }
-        const gRows = [];
-        for (const raw of dataLines) {
-          if (/^HEADERS?:/i.test(raw)) continue;
-          if (!raw.includes('|')) continue;
-          const cells = raw.split('|').map(c => c.trim().replace(/\*\*/g, ''));
-          if (cells.length < 3) continue;
-          const rowLabel = cells[0].replace(/^\d+[\.\)]\s*/, '').trim();
-          const valA = extractValue(cells[1]) || parseFloat(cells[1].replace(/[^0-9.]/g, '')) || 0;
-          const valB = extractValue(cells[2]) || parseFloat(cells[2].replace(/[^0-9.]/g, '')) || 0;
-          if (!rowLabel || (valA === 0 && valB === 0)) continue;
-          gRows.push({ label: rowLabel, valA, valB });
+
+        // Safety net: if AI used grouped but included 3+ series, treat as table
+        const samplePipeRow = dataLines.find(l => !(/^HEADERS?:/i.test(l)) && l.includes('|'));
+        const seriesCount = samplePipeRow ? samplePipeRow.split('|').length - 1 : 2;
+        if (seriesCount >= 3) {
+          vizType = 'table';
+          // fall through to table branch below
+        } else {
+          const gRows = [];
+          for (const raw of dataLines) {
+            if (/^HEADERS?:/i.test(raw)) continue;
+            if (!raw.includes('|')) continue;
+            const cells = raw.split('|').map(c => c.trim().replace(/\*\*/g, ''));
+            if (cells.length < 3) continue;
+            const rowLabel = cells[0].replace(/^\d+[\.\)]\s*/, '').trim();
+            const valA = extractValue(cells[1]) || parseFloat(cells[1].replace(/[^0-9.]/g, '')) || 0;
+            const valB = extractValue(cells[2]) || parseFloat(cells[2].replace(/[^0-9.]/g, '')) || 0;
+            if (!rowLabel || (valA === 0 && valB === 0)) continue;
+            gRows.push({ label: rowLabel, valA, valB });
+          }
+          return gRows.length >= 2 ? { type: 'grouped', labelA, labelB, rows: gRows } : null;
         }
-        return gRows.length >= 2 ? { type: 'grouped', labelA, labelB, rows: gRows } : null;
       }
 
       // ── TABLE viz ─────────────────────────────────────────────

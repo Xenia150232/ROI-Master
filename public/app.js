@@ -1061,14 +1061,16 @@ function renderCompareStats(selected){
     const bestY=YEARS_.reduce((b,y)=>r['v'+y]!=null&&(b==null||r['v'+y]>r['v'+b])?y:b,null);
 
     const rankLabel=i===0?'top-ranked':i===1?'2nd':i===2?'3rd':`ranked #${i+1}`;
-    const scParts=[`Deep-dive analysis of "${r.name}" (${r.category}, ${r.section}), ${rankLabel} in this comparison.`];
-    if(r.v10!=null) scParts.push(`10-year value: ${fv(r.v10)} (${r.gs10||'—'}).`);
-    if(r.v20!=null) scParts.push(`20-year value: ${fv(r.v20)} (${r.gs20||'—'}).`);
-    if(c10!=null) scParts.push(`10Y CAGR: ${c10}%.`);
-    if(c20!=null) scParts.push(`20Y CAGR: ${c20}%.`);
-    if(scorePct!=null) scParts.push(`Overall score vs peers: ${scorePct}%.`);
-    scParts.push('Explain the key drivers, risk profile, and whether this asset deserves its ranking.');
-    const scKey=_storePrompt(scParts.join(' '));
+    const scLines=[];
+    scLines.push(`Here is the scorecard data for **${r.name}** (${r.category} · ${r.section}), ${rankLabel} in this comparison:\n`);
+    if(r.v10!=null) scLines.push(`• 10-Year Return: ${fv(r.v10)}  (${r.gs10||'—'})`);
+    if(r.v20!=null) scLines.push(`• 20-Year Return: ${fv(r.v20)}  (${r.gs20||'—'})`);
+    if(c10!=null)   scLines.push(`• 10Y CAGR: ${c10}%`);
+    if(c20!=null)   scLines.push(`• 20Y CAGR: ${c20}%`);
+    if(bestY)       scLines.push(`• Peak Period: ${bestY} years`);
+    if(scorePct!=null) scLines.push(`• Score vs peers in this comparison: ${scorePct}%`);
+    scLines.push(`\nDoes this ranking make sense? Walk me through what's behind this asset's performance, its risk profile, and whether it's genuinely worth holding over the long term.`);
+    const scKey=_storePrompt({display:`Why is ${r.name} ranked ${rankLabel}? Break it down for me.`, prompt:scLines.join('\n')});
 
     html+=`<div class="cs-card">
       <div class="cs-card-head">
@@ -1771,26 +1773,29 @@ let _aiPromptIdx = 0;
 function _storePrompt(text){ const k=_aiPromptIdx++; _aiPromptCache[k]=text; return k; }
 
 function buildAssetRowAiPrompt(r){
-  const parts=[];
-  parts.push(`Analyse the investment asset "${r.name}" (${r.category}, ${r.section}).`);
-  if(r.v10!=null) parts.push(`Over 10 years it grew to ${r.vs10} (${r.gs10}).`);
-  if(r.v20!=null) parts.push(`Over 20 years it reached ${r.vs20} (${r.gs20}).`);
-  if(r.v1!=null) parts.push(`1-year return: ${r.vs1} (${r.gs1}).`);
   const bestYr=YEARS.reduce((b,y)=>r['v'+y]!=null&&(b==null||r['v'+y]>r['v'+b])?y:b,null);
-  if(bestYr) parts.push(`Peak period: ${bestYr} years.`);
-  parts.push('What drives this performance, what are the risks, and how does it compare to its asset class?');
-  return parts.join(' ');
+  const lines=[];
+  lines.push(`Here is the performance data for **${r.name}** (${r.category} · ${r.section}):\n`);
+  if(r.v1!=null)  lines.push(`• 1 Year:   ${r.vs1}  (${r.gs1})`);
+  if(r.v5!=null)  lines.push(`• 5 Years:  ${r.vs5}  (${r.gs5})`);
+  if(r.v10!=null) lines.push(`• 10 Years: ${r.vs10}  (${r.gs10})`);
+  if(r.v15!=null) lines.push(`• 15 Years: ${r.vs15}  (${r.gs15})`);
+  if(r.v20!=null) lines.push(`• 20 Years: ${r.vs20}  (${r.gs20})`);
+  if(bestYr)      lines.push(`\nPeak period: ${bestYr} years`);
+  lines.push(`\nBased on this data, give me a clear breakdown of this asset — what has driven its performance, what are the key risks an investor should know about, and how does it stack up against other assets in the ${r.section} class?`);
+  const display=`Tell me about ${r.name} — performance, risks and how it compares.`;
+  return {display, prompt:lines.join('\n')};
 }
 
 function tableRowAiClick(e,k){
   e.stopPropagation();
-  const prompt=_aiPromptCache[k];
-  if(prompt && window.openChatWithPrompt) window.openChatWithPrompt(prompt, prompt);
+  const p=_aiPromptCache[k];
+  if(p && window.openChatWithPrompt) window.openChatWithPrompt(p.display, p.prompt);
 }
 
 function scorecardAiClick(k){
-  const prompt=_aiPromptCache[k];
-  if(prompt && window.openChatWithPrompt) window.openChatWithPrompt(prompt, prompt);
+  const p=_aiPromptCache[k];
+  if(p && window.openChatWithPrompt) window.openChatWithPrompt(p.display, p.prompt);
 }
 
 function chartAiClick(chart){

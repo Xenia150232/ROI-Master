@@ -1619,7 +1619,10 @@ function renderMiniCharts(){
         },
         scales:{
           x:{grid:{color:gridColor},ticks:{color:tickColor,font:{size:10},callback:v=>v>=1000000?'$'+(v/1000000).toFixed(1)+'M':v>=1000?'$'+(v/1000).toFixed(0)+'K':'$'+v}},
-          y:{grid:{display:false},ticks:{color:tickColor,font:{size:10.5},autoSkip:false},afterFit:(scale)=>{scale.width=170;}}
+          y:{grid:{display:false},ticks:{color:tickColor,font:{size:10.5},autoSkip:false},afterFit:(scale)=>{
+            const longest=catRoiSorted.reduce((max,d)=>d.name.length>max?d.name.length:max,0);
+            scale.width=Math.max(140,Math.min(260,longest*6.5));
+          }}
         }
       }
     });

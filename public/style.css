@@ -754,7 +754,7 @@ input[type=checkbox]{accent-color:var(--primary);width:15px;height:15px;cursor:p
   background:var(--surface);
 }
 .chat-pills-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:8px}
-.pills-pulse{animation:pillsPulse 600ms ease both}
+.pills-pulse,.pills-refreshed{animation:pillsPulse 500ms ease both}
 @keyframes pillsPulse{
   0%{transform:translateY(4px);opacity:.6}
   100%{transform:translateY(0);opacity:1}

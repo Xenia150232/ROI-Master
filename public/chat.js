@@ -93,6 +93,23 @@
 
   const QUICK_QUESTIONS = pickQuickQuestions();
 
+  function refreshQuickPills() {
+    if (!pillsSection) return;
+    const newSet = pickQuickQuestions();
+    const pillsRow = pillsSection.querySelector('.chat-pills-row');
+    if (!pillsRow) return;
+    pillsRow.innerHTML = '';
+    newSet.forEach(q => {
+      const pill = el('button', 'chat-pill' + (q.key === 'other' ? ' pill-other' : ''), pillsRow);
+      pill.textContent = q.label;
+      pill.addEventListener('click', () => handlePill(q));
+    });
+    // Brief flash animation to signal refresh
+    pillsRow.classList.remove('pills-refreshed');
+    void pillsRow.offsetWidth;
+    pillsRow.classList.add('pills-refreshed');
+  }
+
   // ── TTS (Web Speech API) ─────────────────────────────────────
   let ttsEnabled = false;
   let ttsVoice = null;
@@ -1328,9 +1345,6 @@
 
       // ── TABLE viz ─────────────────────────────────────────────
       if (vizType === 'table') {
-        // Expected format:
-        //   HEADERS: Col1 | Col2 | Col3
-        //   Row label | val | val
         const headerLine = dataLines.find(l => /^HEADERS?:/i.test(l));
         const headers = headerLine
           ? headerLine.replace(/^HEADERS?:\s*/i, '').split('|').map(h => h.trim()).filter(Boolean)
@@ -1342,7 +1356,8 @@
           const cells = raw.split('|').map(c => c.trim().replace(/\*\*/g, ''));
           if (cells.length >= 2) rows.push(cells);
         }
-        if (rows.length >= 1) return { type: 'table', headers, rows };
+        // Return table if we have rows, otherwise null — never fall through to bar chart
+        return rows.length >= 1 ? { type: 'table', headers, rows } : null;
       }
 
       // ── DONUT viz ──────────────────────────────────────────────
@@ -1350,40 +1365,37 @@
         const items = [];
         for (const raw of dataLines) {
           if (!/^\d+[\.\)]/.test(raw) && !/^[-•]/.test(raw)) continue;
-          const val = extractValue(raw);
-          if (val < 1) continue;
+          // Accept dollar values OR plain numbers OR percentages
+          let val = extractValue(raw);
+          if (!val) {
+            const pctMatch = raw.match(/([\d,]+(?:\.\d+)?)%/);
+            if (pctMatch) val = parseFloat(pctMatch[1].replace(/,/g, ''));
+          }
+          if (!val || val < 0.1) continue;
           const name = extractName(raw);
           if (!name || name.length < 2) continue;
           if (!items.find(x => x.name === name) && items.length < 10) items.push({ name, val });
         }
-        // Also support percentage-only format: "Name — 23%"
-        if (!items.length) {
-          for (const raw of dataLines) {
-            if (!/^\d+[\.\)]/.test(raw) && !/^[-•]/.test(raw)) continue;
-            const pctMatch = raw.match(/([\d.]+)%/);
-            if (!pctMatch) continue;
-            const val = parseFloat(pctMatch[1]);
-            const name = extractName(raw);
-            if (!name || name.length < 2) continue;
-            if (!items.find(x => x.name === name) && items.length < 10) items.push({ name, val });
-          }
-        }
-        if (items.length >= 2) return { type: 'donut', items };
+        return items.length >= 2 ? { type: 'donut', items } : null;
       }
 
       // ── LINE viz ───────────────────────────────────────────────
       if (vizType === 'line') {
-        // Expected format: label — $value (one point per line, in order)
         const points = [];
         for (const raw of dataLines) {
           if (!/^\d+[\.\)]/.test(raw) && !/^[-•]/.test(raw)) continue;
-          const val = extractValue(raw);
-          if (val < 1) continue;
+          // Accept dollar values OR plain numbers
+          let val = extractValue(raw);
+          if (!val) {
+            const numMatch = raw.match(/[\s—–:]\s*([\d,]+(?:\.\d+)?)\s*([xX]?)$/);
+            if (numMatch) val = parseFloat(numMatch[1].replace(/,/g, ''));
+          }
+          if (!val || val < 0.01) continue;
           const name = extractName(raw);
           if (!name || name.length < 1) continue;
           points.push({ label: name, val });
         }
-        if (points.length >= 2) return { type: 'line', points };
+        return points.length >= 2 ? { type: 'line', points } : null;
       }
 
       // ── Default: ranked bar ────────────────────────────────────
@@ -1396,7 +1408,8 @@
         if (!name || name.length < 3) continue;
         if (!items.find(x => x.name === name) && items.length < 10) items.push({ name, val });
       }
-      if (items.length >= 2) return { type: 'ranked', items };
+      // Once we have a CHART DATA section, always return from here — never fall through to prose scan
+      return items.length >= 2 ? { type: 'ranked', items } : null;
     }
 
     // ── Priority 2: scan full text for numbered/bulleted lines with $ values ─
@@ -2188,6 +2201,7 @@
     msg.scrollIntoView({ behavior: 'smooth', block: 'start' });
     playBeep();
     ttsSpeak(text);
+    refreshQuickPills();
   }
 
   function addUserMsg(text) {

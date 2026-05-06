@@ -15,7 +15,7 @@ A tool that lets you see growth across investments and asset classes with advanc
 
 - **300+ pre-loaded assets** across Stocks, ETFs & Funds, Bonds, Commodities, and Real Estate — ***easily add your own datasets*** via CSV upload
 - **Adjustable seed value** — change the initial investment amount and all figures update instantly
-- **Analyse with AI** — hover any of the 30 KPI tiles or any of the 7 data visualisations and a blue **Analyse with AI** button appears. Clicking it fires a pre-built, context-aware question directly into the chatbot — no typing needed. The question automatically reflects the active section, selected time horizon, and current data state
+- **Analyse with AI** — hover any of the 30 KPI tiles or any of the 7 data visualisations and a blue *Analyse with AI* button appears. Clicking it fires a pre-built, context-aware question directly into the chatbot — no typing needed. The question automatically reflects the active section, selected time horizon, and current data state
 - **Dynamic Tooltips** — hover any of the 30 KPI tiles or any of the 7 data visualisations to see a live tooltip listing the **top 10 assets** that make up that specific data point. Every tooltip is generated on the fly from the current filtered dataset and active time horizon, so it always reflects exactly what you're looking at
 - **Live reactive calculations** — every KPI tile and data visualisation instantly recalculates whenever you exclude assets or apply filters. Exclude a single outlier like Bitcoin, filter down to just ETFs, or run a free-text search — and every stat, chart, median, and ranked list updates in real time to reflect exactly the visible dataset, with no page reload required
 - **30 KPI Tiles** — scrolling carousel of at-a-glance performance stats including:
@@ -42,7 +42,9 @@ A tool that lets you see growth across investments and asset classes with advanc
   - **Comparison charts** — side-by-side bars when the answer contrasts two groups (e.g. Asia vs Europe returns across time horizons)
   - **Voice readout (Web Speech API)** — every AI reply is read aloud using the browser's built-in `SpeechSynthesis` API with a prioritised natural female voice (Samantha, Google UK English Female, Karen, and others). A speaker icon in the chat header lets users mute/unmute at any time; the preference is saved to `localStorage` between visits
   - Auto-suggested follow-up questions — 6 contextual pills after every response, derived from the specific assets and topics in the answer
-  - Persistent chat history — conversation is saved to localStorage and restored on return visits, with full chart replay
+  - Persistent chat history - Saved to browser localStorage
+    - Clever replies: AI Chatbot analyses past messages and uses reasoning to determine if the next response is related or not  
+    - Chat History - Restored on return visits, with full chart replay (browser localStorage)
   - Full awareness of all 7 dashboard visualisations — ask "what does the scatter plot show?" and get a data-driven description
   - Powered by any OpenAI-compatible LLM, with automatic fallback to a smart regex engine when no API key is configured
   - Read-only guardrails — multiple layers prevent the chatbot from modifying data or being manipulated via prompt injection
@@ -90,7 +92,7 @@ The built-in chat widget operates in two modes:
 - **Voice readout (Web Speech API)** — each bot reply is spoken aloud via the browser's native `SpeechSynthesis` API. The voice picker prioritises natural, warm female voices (Samantha, Google UK English Female, Karen, etc.). A speaker icon in the chat header lets users mute/unmute; preference persists via `localStorage`
 - **Dynamic follow-up pills** — after every AI response, 6 contextual follow-up questions appear as clickable pills derived from the specific assets, categories, and time horizons mentioned in the reply. These are generated dynamically from the conversation context — not a fixed list. Each response produces different pills tailored to what was just discussed (e.g. after asking about tech stocks you might see pills for semiconductors, AI ETFs, or 10-year comparisons). The opening quick-question pills are also randomised on each visit from a pool of 35+ investment topics
 
-- **Persistent history** — the full conversation is saved to localStorage and restored on return, with charts replayed from stored data
+- **Persistent history** — the full conversation is saved to localStorage and restored on return, with charts replayed from stored data. Each chatbot respone analyses all past messages to determine if the next response is related to the previous messages
 - **Visualisation awareness** — the chatbot knows the names and purpose of all 7 dashboard charts and describes what each shows using live dataset figures
 - **Guardrails** — three layers of protection: client-side input blocking, server-side pattern matching, and a hardened system prompt that enforces read-only behaviour and resists prompt injection
 - **IP rate limiting** — each unique IP address is limited to 30 AI calls per UTC day, tracked server-side via the hosting platform's key-value store. This cannot be bypassed by clearing browser storage. The chat counter shows remaining messages; users who hit the limit see a message directing them to the site owner

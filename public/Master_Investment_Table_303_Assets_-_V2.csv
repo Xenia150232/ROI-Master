@@ -87,7 +87,7 @@ Vertiv (VRT),"Technology, Data Centers","$1,900",1.90x,"$14,276",14.3x,,,,,,
 Arm Holdings (ARM),"Technology, Semiconductors","$1,260",1.26x,,,,,,,,
 Micron Technology (MU),"Technology, Semiconductors","$6,621",6.62x,"$3,200",3.2x,"$28,000",28.0x,"$55,000",55.0x,"$95,000",95.0x
 Lam Research (LRCX),"Technology, Semiconductors","$3,595",3.60x,"$8,200",8.2x,"$55,000",55.0x,"$95,000",95.0x,"$110,000",110x
-Marvell Tech (MRVL),"Technology, Semiconductors","$1,450",1.45x,"$3,800",3.8x,"$22,000",22.0x,,,,
+Marvell Tech (MRVL),"Technology, Semiconductors","$1,450",1.45x,"$3,800",3.8x,"$22,000",22.0x,"$12,500",12.5x,"$8,500",8.5x
 S&P Global (SPGI),"Financial Services, Data","$1,250",1.25x,"$2,100",2.1x,"$12,000",12.0x,"$22,000",22.0x,"$45,000",45.0x
 Moody's (MCO),"Financial Services, Data","$1,220",1.22x,"$2,000",2.0x,"$11,000",11.0x,"$20,000",20.0x,"$42,000",42.0x
 Booking Holdings (BKNG),"Technology, Travel","$1,350",1.35x,"$2,200",2.2x,"$9,500",9.5x,"$18,000",18.0x,"$38,000",38.0x
@@ -126,9 +126,9 @@ Chubb (CB),"Financial Services, Insurance","$1,200",1.20x,"$1,800",1.8x,"$4,500"
 Progressive (PGR),"Financial Services, Insurance","$1,250",1.25x,"$2,800",2.8x,"$9,500",9.5x,"$20,000",20.0x,"$38,000",38.0x
 Palo Alto (PANW),"Technology, Cybersecurity","$1,120",1.12x,"$2,800",2.8x,"$12,000",12.0x,,,,
 Cloudflare (NET),"Technology, Cloud","$1,200",1.20x,"$2,200",2.2x,,,,,,
-Fortinet (FTNT),"Technology, Cybersecurity","$1,150",1.15x,"$2,000",2.0x,"$8,000",8.0x,,,,
+Fortinet (FTNT),"Technology, Cybersecurity","$1,150",1.15x,"$2,000",2.0x,"$8,000",8.0x,"$27,200",27.2x,,
 HubSpot (HUBS),"Technology, Software","$1,100",1.10x,"$1,800",1.8x,"$7,200",7.2x,,,,
-Synopsys (SNPS),"Technology, Software, EDA","$1,200",1.20x,"$2,400",2.4x,"$11,000",11.0x,,,,
+Synopsys (SNPS),"Technology, Software, EDA","$1,200",1.20x,"$2,400",2.4x,"$11,000",11.0x,"$18,400",18.4x,"$24,600",24.6x
 Chipotle (CMG),"Restaurants, Food","$1,200",1.20x,"$2,200",2.2x,"$8,500",8.5x,"$18,000",18.0x,,
 Pool Corp (POOL),"Consumer, Retail","$1,100",1.10x,"$1,800",1.8x,"$7,500",7.5x,"$16,000",16.0x,,
 Dollar General (DG),"Consumer Staples, Retail",$950,0.95x,$800,0.8x,"$2,200",2.2x,"$8,500",8.5x,"$14,000",14.0x
@@ -141,14 +141,14 @@ NextEra Energy (NEE),"Energy, Utilities","$1,080",1.08x,"$1,400",1.4x,"$4,500",4
 ConocoPhillips (COP),Energy,"$1,150",1.15x,"$2,400",2.4x,"$5,500",5.5x,"$10,000",10.0x,"$18,000",18.0x
 Nintendo (NTDOY),"Technology, Gaming","$1,150",1.15x,"$1,600",1.6x,"$4,000",4.0x,"$8,000",8.0x,"$14,000",14.0x
 Roblox (RBLX),"Technology, Gaming",$850,0.85x,$700,0.7x,,,,,,
-Take-Two (TTWO),"Technology, Gaming","$1,050",1.05x,"$1,200",1.2x,"$3,500",3.5x,,,,
+Take-Two (TTWO),"Technology, Gaming","$1,050",1.05x,"$1,200",1.2x,"$3,500",3.5x,"$13,600",13.6x,"$13,700",13.7x
 Western Digital (WDC),"Technology, Storage","$9,471",9.47x,"$2,800",2.8x,"$14,000",14.0x,"$22,000",22.0x,"$27,700",27.7x
 Seagate Tech (STX),"Technology, Storage","$7,739",7.74x,"$3,200",3.2x,"$11,000",11.0x,"$18,000",18.0x,"$22,000",22.0x
 Corning (GLW),"Technology, Materials","$3,629",3.63x,"$1,400",1.4x,"$3,500",3.5x,"$7,000",7.0x,"$12,000",12.0x
 Qualcomm (QCOM),"Technology, Semiconductors","$1,180",1.18x,"$2,200",2.2x,"$8,500",8.5x,"$14,000",14.0x,"$20,000",20.0x
-ON Semiconductor (ON),"Technology, Semiconductors","$1,050",1.05x,"$4,500",4.5x,"$18,000",18.0x,,,,
+ON Semiconductor (ON),"Technology, Semiconductors","$1,050",1.05x,"$4,500",4.5x,"$18,000",18.0x,"$9,100",9.1x,"$17,000",17.0x
 Analog Devices (ADI),"Technology, Semiconductors","$1,120",1.12x,"$1,800",1.8x,"$8,000",8.0x,"$16,000",16.0x,"$28,000",28.0x
-Wolfspeed (WOLF),"Technology, Semiconductors",$750,0.75x,$300,0.3x,"$1,200",1.2x,,,,
+Wolfspeed (WOLF),"Technology, Semiconductors",$750,0.75x,$300,0.3x,"$1,200",1.2x,$670,0.67x,"$1,100",1.1x
 Old Dominion (ODFL),"Industrials, Transport","$1,120",1.12x,"$2,200",2.2x,"$10,000",10.0x,"$22,000",22.0x,"$38,000",38.0x
 FedEx (FDX),"Industrials, Transport","$1,100",1.10x,"$1,400",1.4x,"$3,500",3.5x,"$7,000",7.0x,"$14,000",14.0x
 UPS (UPS),"Industrials, Transport","$1,050",1.05x,"$1,100",1.1x,"$2,800",2.8x,"$5,500",5.5x,"$11,000",11.0x
@@ -162,20 +162,20 @@ DoorDash (DASH),"Technology, Food Delivery","$1,350",1.35x,"$1,600",1.6x,,,,,,
 Lyft (LYFT),"Technology, Transport","$1,050",1.05x,$500,0.5x,"$1,800",1.8x,,,,
 Warner Bros (WBD),"Entertainment, Media",$950,0.95x,$350,0.35x,,,,,,
 Comcast (CMCSA),"Media, Telecommunications","$1,050",1.05x,"$1,000",1.0x,"$2,200",2.2x,"$5,500",5.5x,"$9,000",9.0x
-Paramount (PARA),"Entertainment, Media",$850,0.85x,$350,0.35x,$800,0.8x,,,,
+Paramount (PARA),"Entertainment, Media",$850,0.85x,$350,0.35x,$800,0.8x,$453,0.45x,$587,0.59x
 Enbridge (ENB),"Energy, Infrastructure","$1,120",1.12x,"$1,400",1.4x,"$2,500",2.5x,"$5,500",5.5x,"$9,000",9.0x
-Plug Power (PLUG),"Energy, Hydrogen",$550,0.55x,$300,0.3x,$800,0.8x,,,,
+Plug Power (PLUG),"Energy, Hydrogen",$550,0.55x,$300,0.3x,$800,0.8x,"$1,400",1.4x,$65,0.07x
 Vestas Wind (VWSYF),"Energy, Wind",$850,0.85x,"$1,100",1.1x,"$2,800",2.8x,"$7,000",7.0x,"$4,000",4.0x
 Meituan (MPNGF),"Technology, Food Delivery","$1,400",1.40x,"$1,200",1.2x,,,,,,
 PDD Holdings (PDD),"Technology, E-Commerce","$1,100",1.10x,"$5,500",5.5x,,,,,,
 JD.com (JD),"Technology, E-Commerce","$1,200",1.20x,"$1,000",1.0x,"$2,200",2.2x,,,,
-Baidu (BIDU),"Technology, Internet, AI",$950,0.95x,$600,0.6x,"$2,800",2.8x,,,,
-Adani Enterprises (ADANIENT),"Industrials, Energy","$1,200",1.20x,"$3,500",3.5x,"$18,000",18.0x,,,,
+Baidu (BIDU),"Technology, Internet, AI",$950,0.95x,$600,0.6x,"$2,800",2.8x,$930,0.93x,"$16,200",16.2x
+Adani Enterprises (ADANIENT),"Industrials, Energy","$1,200",1.20x,"$3,500",3.5x,"$18,000",18.0x,"$32,500",32.5x,"$148,000",148.0x
 Naspers (NPSNY),"Technology, Internet","$1,100",1.10x,"$1,400",1.4x,"$5,500",5.5x,"$14,000",14.0x,,
 Prosus (PRX.AS),"Technology, Internet","$1,100",1.10x,"$1,400",1.4x,,,,,,
 Kering (KER.PA),"Fashion, Luxury",$900,0.90x,"$1,100",1.1x,"$4,500",4.5x,"$11,000",11.0x,"$18,000",18.0x
-Moncler (MONC.MI),"Fashion, Luxury","$1,100",1.10x,"$1,800",1.8x,,,,,,
-Brunello Cucinelli (BC.MI),"Fashion, Luxury","$1,150",1.15x,"$2,800",2.8x,,,,,,
+Moncler (MONC.MI),"Fashion, Luxury","$1,100",1.10x,"$1,800",1.8x,"$4,000",4.0x,,,,
+Brunello Cucinelli (BC.MI),"Fashion, Luxury","$1,150",1.15x,"$2,800",2.8x,"$5,100",5.1x,,,,
 📦 ETFs AND FUNDS,,,,,,,,,,,
 KKR & Co. (KKR),Financial Services,"$1,250",1.25x,"$2,800",2.8x,"$17,500",17.5x,"$22,000",22.0x,,
 Blackstone (BX),Financial Services,"$1,250",1.25x,"$2,000",2.0x,"$14,800",14.8x,"$20,000",20.0x,,
@@ -225,14 +225,14 @@ Vanguard Div Apprec (VIG),"ETF, Dividend","$1,140",1.14x,"$1,600",1.6x,"$3,800",
 Latin America (ILF),"ETF, Equities, LatAm","$1,150",1.15x,"$1,100",1.1x,"$1,400",1.4x,"$1,200",1.2x,"$1,800",1.8x
 Korea (EWY),"ETF, Equities, Korea","$1,050",1.05x,"$1,000",1.0x,"$1,400",1.4x,"$1,500",1.5x,"$2,200",2.2x
 MSCI World (IWRD),"ETF, Equities, Global","$1,150",1.15x,"$1,550",1.55x,"$3,400",3.4x,"$6,500",6.5x,"$11,000",11.0x
-Invesco QQQ (TQQQ),"ETF, Technology, Leveraged","$1,390",1.39x,"$2,360",2.36x,"$12,500",12.5x,,,,
+Invesco QQQ (TQQQ),"ETF, Technology, Leveraged","$1,390",1.39x,"$2,360",2.36x,"$12,500",12.5x,"$152,000",152.0x,,
 Genomics (ARKG),"ETF, Healthcare, Genomics",$800,0.80x,$500,0.5x,,,,,,
 Fintech (FINX),"ETF, Technology, FinTech","$1,100",1.10x,"$1,200",1.2x,"$3,500",3.5x,,,,
 Obesity & Pharma (MEDS),"ETF, Healthcare, Pharma","$1,200",1.20x,,,,,,,,
 Global X AI (AIQ),"ETF, Technology, AI","$1,300",1.30x,"$2,200",2.2x,,,,,,
 iShares FTSE 100 (ISF),"ETF, Equities, UK","$1,080",1.08x,"$1,300",1.3x,"$2,200",2.2x,"$3,500",3.5x,"$5,500",5.5x
 iShares MSCI Brazil (EWZ),"ETF, Equities, Brazil","$1,150",1.15x,"$1,100",1.1x,"$1,200",1.2x,"$1,400",1.4x,"$2,200",2.2x
-VanEck Vietnam (VNM),"ETF, Equities, Vietnam","$1,120",1.12x,"$1,100",1.1x,"$1,600",1.6x,,,,
+VanEck Vietnam (VNM),"ETF, Equities, Vietnam","$1,120",1.12x,"$1,100",1.1x,"$1,600",1.6x,"$1,190",1.2x,,
 iShares MSCI Mexico (EWW),"ETF, Equities, Mexico","$1,100",1.10x,"$1,100",1.1x,"$1,400",1.4x,"$1,800",1.8x,"$2,500",2.5x
 Invesco India (PIN),"ETF, Equities, India","$1,250",1.25x,"$1,700",1.7x,"$2,600",2.6x,"$3,500",3.5x,,
 iShares MSCI Saudi (KSA),"ETF, Equities, Saudi Arabia","$1,100",1.10x,"$1,200",1.2x,"$1,800",1.8x,,,,
@@ -245,25 +245,25 @@ Industrials (XLI),"ETF, Industrials","$1,150",1.15x,"$1,700",1.7x,"$3,500",3.5x,
 Communication (XLC),"ETF, Communication","$1,200",1.20x,"$1,600",1.6x,,,,,,
 Consumer Disc (XLY),"ETF, Consumer Discretionary","$1,150",1.15x,"$1,500",1.5x,"$5,500",5.5x,"$11,000",11.0x,"$18,000",18.0x
 iShares MSCI Taiwan (EWT),"ETF, Equities, Taiwan","$1,200",1.20x,"$1,700",1.7x,"$3,800",3.8x,"$5,160",5.16x,"$7,290",7.3x
-iShares MSCI Indonesia (EIDO),"ETF, Equities, Indonesia","$1,050",1.05x,"$1,000",1.0x,"$1,200",1.2x,,,,
+iShares MSCI Indonesia (EIDO),"ETF, Equities, Indonesia","$1,050",1.05x,"$1,000",1.0x,"$1,200",1.2x,$637,0.64x,,
 iShares MSCI UAE (UAE),"ETF, Equities, Middle East","$1,100",1.10x,"$1,400",1.4x,"$2,200",2.2x,,,,
-iShares MSCI Poland (EPOL),"ETF, Equities, Europe","$1,200",1.20x,"$1,400",1.4x,"$1,600",1.6x,,,,
-VanEck Africa (AFK),"ETF, Equities, Africa","$1,100",1.10x,$900,0.9x,"$1,000",1.0x,,,,
+iShares MSCI Poland (EPOL),"ETF, Equities, Europe","$1,200",1.20x,"$1,400",1.4x,"$1,600",1.6x,"$1,580",1.6x,,
+VanEck Africa (AFK),"ETF, Equities, Africa","$1,100",1.10x,$900,0.9x,"$1,000",1.0x,"$1,230",1.2x,,
 iShares MSCI Aust (EWA),"ETF, Equities, Australia","$1,100",1.10x,"$1,300",1.3x,"$2,200",2.2x,"$3,500",3.5x,"$5,500",5.5x
 iShares S.Africa (EZA),"ETF, Equities, South Africa","$1,694",1.69x,"$1,774",1.77x,"$2,190",2.19x,"$3,200",3.20x,"$4,600",4.60x
-SPDR S&P Emerg Africa,"ETF, Equities, Pan-Africa","$1,120",1.12x,"$1,000",1.0x,"$1,300",1.3x,,,,
-VanEck Egypt (EGPT),"ETF, Equities, Middle East/Africa","$1,350",1.35x,"$1,200",1.2x,$900,0.9x,,,,
+SPDR S&P Emerg Africa,"ETF, Equities, Pan-Africa","$1,120",1.12x,"$1,000",1.0x,"$1,300",1.3x,"$1,150",1.1x,,
+VanEck Egypt (EGPT),"ETF, Equities, Middle East/Africa","$1,350",1.35x,"$1,200",1.2x,$900,0.9x,$479,0.48x,,
 🛢️ COMMODITIES,,,,,,,,,,,
 Oil & Gas Expl (XOP),"ETF, Energy","$1,430",1.43x,"$2,200",2.2x,"$3,800",3.8x,"$5,500",5.5x,,
 Materials (XLB),"ETF, Materials","$1,120",1.12x,"$1,600",1.6x,"$2,800",2.8x,"$5,500",5.5x,"$9,000",9.0x
 Energy (XLE),"ETF, Energy","$1,200",1.20x,"$1,900",1.9x,"$2,200",2.2x,"$4,500",4.5x,"$7,000",7.0x
 Global Water (CGW),"ETF, Utilities","$1,150",1.15x,"$1,350",1.35x,"$2,800",2.8x,"$3,800",3.8x,"$4,500",4.5x
-Global X Copper (COPX),"ETF, Commodities, Metals","$1,250",1.25x,"$2,200",2.2x,"$3,500",3.5x,,,,
-Lithium (LIT),"ETF, Commodities, EV",$750,0.75x,$800,0.8x,"$2,200",2.2x,,,,
+Global X Copper (COPX),"ETF, Commodities, Metals","$1,250",1.25x,"$2,200",2.2x,"$3,500",3.5x,"$1,900",1.9x,,
+Lithium (LIT),"ETF, Commodities, EV",$750,0.75x,$800,0.8x,"$2,200",2.2x,"$2,560",2.6x,,
 Palladium (PALL),"ETF, Commodities, Metals","$1,050",1.05x,$800,0.8x,"$3,500",3.5x,"$1,920",1.92x,,
-Platinum (PPLT),"ETF, Commodities, Metals","$1,050",1.05x,$900,0.9x,"$1,400",1.4x,,,,
+Platinum (PPLT),"ETF, Commodities, Metals","$1,050",1.05x,$900,0.9x,"$1,400",1.4x,$972,0.97x,,
 Agriculture (DBA),"ETF, Commodities, Agriculture","$1,100",1.10x,"$1,400",1.4x,"$1,600",1.6x,"$2,200",2.2x,,
-Natural Gas (UNG),"ETF, Commodities, Energy","$1,150",1.15x,$700,0.7x,$600,0.6x,,,,
+Natural Gas (UNG),"ETF, Commodities, Energy","$1,150",1.15x,$700,0.7x,$600,0.6x,$902,0.90x,,
 iShares Timber (WOOD),"Commodities, Timber & Forestry","$1,080",1.08x,"$1,306",1.29x,"$1,790",1.79x,"$2,571",2.43x,"$3,523",3.50x
 VanEck Rare Earth/Strat Metals (REMX),"Commodities, Rare Earth & Strategic Metals","$1,250",1.25x,"$2,287",2.28x,"$4,411",4.41x,"$7,137",7.14x,"$10,545",10.8x
 Global X Silver Miners (SIL),"Commodities, Silver Miners","$1,400",1.40x,"$2,488",2.49x,"$4,411",4.41x,"$7,137",7.14x,"$8,062",8.06x
@@ -273,7 +273,7 @@ Lithium (LIT / LIT-style),"Commodities, Strategic Metals","$1,100",1.10x,"$2,011
 Cobalt (CBT-style),"Commodities, Strategic Metals","$1,050",1.05x,"$1,762",1.76x,"$2,593",2.59x,"$3,642",3.64x,"$4,660",4.66x
 Nickel (NICK-style),"Commodities, Strategic Metals","$1,050",1.05x,"$1,925",1.93x,"$2,839",2.84x,"$4,177",4.18x,"$5,604",5.60x
 Broad Commodities (PDBC),"Commodities, Diversified","$1,250",1.25x,"$2,287",2.28x,"$3,707",3.71x,"$5,473",5.47x,"$6,727",6.73x
-Bitcoin (BTC),Cryptocurrency,"$1,380",1.38x,"$13,000",13.0x,"$350,000",350x,,,,
+Bitcoin (BTC),Cryptocurrency,"$1,380",1.38x,"$13,000",13.0x,"$350,000",350x,$45.5M,45500x,,
 Gold Miners (GDX),"Mining, Gold","$1,550",1.55x,"$1,250",1.25x,"$3,800",3.8x,$600,0.6x,"$3,200",3.2x
 Energy ETF (VDE),"ETF, Energy","$1,380",1.38x,"$3,400",3.4x,"$4,000",4.0x,"$1,700",1.7x,"$3,800",3.8x
 Uranium (URA/CCJ),"Mining, Uranium","$1,350",1.35x,"$3,200",3.2x,"$5,000",5.0x,"$2,200",2.2x,"$3,200",3.2x

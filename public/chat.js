@@ -1690,9 +1690,18 @@
     // Prefer the canvas directly if one exists
     const canvas = container.querySelector('canvas');
     if (canvas) {
+      const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+      const bgColor = isDark ? '#111623' : '#ffffff';
+      const flat = document.createElement('canvas');
+      flat.width  = canvas.width;
+      flat.height = canvas.height;
+      const flatCtx = flat.getContext('2d');
+      flatCtx.fillStyle = bgColor;
+      flatCtx.fillRect(0, 0, flat.width, flat.height);
+      flatCtx.drawImage(canvas, 0, 0);
       const link = document.createElement('a');
       link.download = sanitiseFilename(chartTitle) + '.png';
-      link.href = canvas.toDataURL('image/png');
+      link.href = flat.toDataURL('image/png');
       link.click();
       return;
     }

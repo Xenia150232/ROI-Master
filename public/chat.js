@@ -1544,6 +1544,25 @@
 
     if (items.length >= 2) return { type: 'ranked', items };
 
+    // ── Priority 2b: inline prose time-series scan ────────────────────────────
+    // Catches patterns like "$2,000 over 5yr" or "$32,000 over 20 years" in a single bullet.
+    {
+      const horizonOrder = ['1yr','5yr','10yr','15yr','20yr'];
+      const horizonPattern = /\$\s*([\d,]+)\s+over\s+(\d+)\s*(?:yr|year)/gi;
+      const found = {};
+      let m;
+      while ((m = horizonPattern.exec(text)) !== null) {
+        const val = parseFloat(m[1].replace(/,/g, ''));
+        const yrs = parseInt(m[2], 10);
+        const key = yrs + 'yr';
+        if (horizonOrder.includes(key) && val > 0) found[key] = val;
+      }
+      const points = horizonOrder.filter(k => found[k]).map(k => ({ label: k, val: found[k] }));
+      if (points.length >= 2) {
+        return { type: 'line', series: [{ name: null, points }] };
+      }
+    }
+
     // ── Priority 3: comparison table (lines with "vs") ────────────────────────
     const rows = [];
     let labelA = '', labelB = '';
@@ -2356,8 +2375,8 @@
       let chartData = extractChartData(rawText, lastUserQuestion);
 
       // Fallback chart: only for local (non-AI) responses. When the AI is connected
-      // but omits or mis-formats the CHART DATA block, show nothing rather than an
-      // unrelated default chart.
+      // but omits or mis-formats the CHART DATA block, use a generic top-assets chart.
+      // (Prose-derived charts from extractChartData are still shown for AI responses.)
       if (!chartData && !aiResponse) {
         const fallbackAssets = getAssets();
         if (fallbackAssets && fallbackAssets.length >= 2) {
@@ -2372,8 +2391,17 @@
       }
 
       if (chartData) {
-        const titleMatch = (lastUserQuestion + ' ' + text).match(/top \d+|best \d+|worst \d+|ranked|comparison|compare|breakdown|category|class|horizon|growth|trend/i);
-        const chartTitle = titleMatch ? titleMatch[0].replace(/\b\w/g, c => c.toUpperCase()) : 'Top 10yr Returns';
+        let chartTitle;
+        if (chartData.type === 'line') {
+          // For line charts, use the series name or derive from the question
+          const seriesName = chartData.series && chartData.series[0] && chartData.series[0].name;
+          chartTitle = seriesName || (lastUserQuestion
+            ? lastUserQuestion.replace(/^(how|show|what|tell me about|give me)\s+(did|has|is|are|were)?\s*/i, '').replace(/[?!.]+$/, '').replace(/\b\w/g, c => c.toUpperCase()).slice(0, 40)
+            : 'Returns Over Time');
+        } else {
+          const titleMatch = (lastUserQuestion + ' ' + text).match(/top \d+|best \d+|worst \d+|ranked|comparison|compare|breakdown|category|class|horizon|growth|trend/i);
+          chartTitle = titleMatch ? titleMatch[0].replace(/\b\w/g, c => c.toUpperCase()) : 'Top 10yr Returns';
+        }
         const chartWrap = el('div', 'chat-chart-wrap', msg);
         renderChatChart(chartWrap, chartData, chartTitle, getSeedNote(text));
       }

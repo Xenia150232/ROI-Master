@@ -652,11 +652,14 @@ function renderTable(){
     const sel=selectedNames.includes(r.name);
     const excl=excludedNames.has(r.name);
     const nameEsc=r.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+    const aiPromptRow=buildAssetRowAiPrompt(r);
+    const aiPromptEsc=aiPromptRow.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
     return `<tr class="${sel&&!excl?'row-selected':''} ${excl?'row-excluded':''}" onclick="rowClick(event,'${nameEsc}')">
       <td><input type="checkbox" ${sel&&!excl?'checked':''} ${excl?'disabled':''} onclick="toggleSel(event,'${nameEsc}')"></td>
       <td>
         <div style="display:flex;align-items:center;gap:6px">
           <div style="flex:1;min-width:0"><div class="asset-name">${r.name}</div><div class="cat-tag">${r.category}</div></div>
+          <button class="row-ai-btn" onclick="event.stopPropagation();tableRowAiClick('${aiPromptEsc}')" title="Analyse with AI"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>AI</button>
           <button class="exclude-btn ${excl?'excluded':''}" onclick="toggleExclude(event,'${nameEsc}')" title="${excl?'Re-include this asset':'Exclude from calculations'}">${excl?includeIcon:excludeIcon}</button>
         </div>
       </td>
@@ -1058,6 +1061,16 @@ function renderCompareStats(selected){
     const scoreCls=scorePct>=70?'badge-gold':scorePct>=40?'badge-green':'badge-red';
     const bestY=YEARS_.reduce((b,y)=>r['v'+y]!=null&&(b==null||r['v'+y]>r['v'+b])?y:b,null);
 
+    const rankLabel=i===0?'top-ranked':i===1?'2nd':i===2?'3rd':`ranked #${i+1}`;
+    const scParts=[`Deep-dive analysis of "${r.name}" (${r.category}, ${r.section}), ${rankLabel} in this comparison.`];
+    if(r.v10!=null) scParts.push(`10-year value: ${fv(r.v10)} (${r.gs10||'—'}).`);
+    if(r.v20!=null) scParts.push(`20-year value: ${fv(r.v20)} (${r.gs20||'—'}).`);
+    if(c10!=null) scParts.push(`10Y CAGR: ${c10}%.`);
+    if(c20!=null) scParts.push(`20Y CAGR: ${c20}%.`);
+    if(scorePct!=null) scParts.push(`Overall score vs peers: ${scorePct}%.`);
+    scParts.push('Explain the key drivers, risk profile, and whether this asset deserves its ranking.');
+    const scPrompt=scParts.join(' ').replace(/'/g,"\\'");
+
     html+=`<div class="cs-card">
       <div class="cs-card-head">
         <div class="cs-card-dot" style="background:${color}"></div>
@@ -1083,6 +1096,9 @@ function renderCompareStats(selected){
         <span class="cs-card-label">Peak</span>
         <span class="growth-badge badge-gold" style="font-size:10px">${bestY?bestY+'Y':'—'}</span>
         ${scorePct!=null?`<span class="growth-badge ${scoreCls}" style="font-size:10px;margin-left:auto">${scorePct}% score</span>`:''}
+      </div>
+      <div class="cs-card-ai-footer">
+        <button class="cs-card-ai-btn" onclick="scorecardAiClick('${scPrompt}')"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>Analyse with AI</button>
       </div>
     </div>`;
   });
@@ -1747,6 +1763,26 @@ function hideKpiTip(){
 function kpiAiClick(btn){
   const card = btn.closest('.kpi-card');
   const prompt = card && card.getAttribute('data-ai-prompt');
+  if(prompt && window.openChatWithPrompt) window.openChatWithPrompt(prompt, prompt);
+}
+
+function buildAssetRowAiPrompt(r){
+  const parts=[];
+  parts.push(`Analyse the investment asset "${r.name}" (${r.category}, ${r.section}).`);
+  if(r.v10!=null) parts.push(`Over 10 years it grew to ${r.vs10} (${r.gs10}).`);
+  if(r.v20!=null) parts.push(`Over 20 years it reached ${r.vs20} (${r.gs20}).`);
+  if(r.v1!=null) parts.push(`1-year return: ${r.vs1} (${r.gs1}).`);
+  const bestYr=YEARS.reduce((b,y)=>r['v'+y]!=null&&(b==null||r['v'+y]>r['v'+b])?y:b,null);
+  if(bestYr) parts.push(`Peak period: ${bestYr} years.`);
+  parts.push('What drives this performance, what are the risks, and how does it compare to its asset class?');
+  return parts.join(' ');
+}
+
+function tableRowAiClick(prompt){
+  if(prompt && window.openChatWithPrompt) window.openChatWithPrompt(prompt, prompt);
+}
+
+function scorecardAiClick(prompt){
   if(prompt && window.openChatWithPrompt) window.openChatWithPrompt(prompt, prompt);
 }
 

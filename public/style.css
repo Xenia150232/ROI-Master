@@ -178,6 +178,12 @@ tr:hover .exclude-btn{opacity:1}
 .exclude-btn:hover{background:var(--red-bg);border-color:var(--red);color:var(--red)}
 .exclude-btn.excluded{opacity:1;background:var(--red-bg);border-color:var(--red);color:var(--red)}
 .exclude-btn.excluded:hover{background:#eff4ff;border-color:var(--primary);color:var(--primary)}
+
+/* Row AI button — appears on table row hover */
+.row-ai-btn{display:inline-flex;align-items:center;gap:4px;height:20px;padding:0 7px;font-size:10px;font-weight:700;letter-spacing:.04em;border:1px solid var(--primary);border-radius:4px;background:var(--primary-bg);color:var(--primary);cursor:pointer;transition:all 140ms;opacity:0;white-space:nowrap;flex-shrink:0}
+tr:hover .row-ai-btn{opacity:1}
+.row-ai-btn:hover{background:var(--primary);color:#fff;box-shadow:0 2px 8px rgba(37,99,235,.35)}
+
 .section-badge{font-size:10px;padding:2px 7px;border-radius:20px;background:var(--surface2);color:var(--muted);white-space:nowrap}
 .val{font-family:'Inter',monospace;font-size:12px;white-space:nowrap;font-weight:500}
 .val-pos{color:var(--green)}.val-mega{color:var(--gold)}.val-neg{color:var(--red)}.val-na{color:var(--faint);font-weight:400}
@@ -285,6 +291,13 @@ input[type=checkbox]{accent-color:var(--primary);width:15px;height:15px;cursor:p
 .cs-card-mult{font-size:10px;color:var(--muted)}
 .cs-best{color:var(--green)!important;font-weight:700}
 .cs-worst{color:var(--red)!important}
+
+/* Scorecard AI footer */
+.cs-card-ai-footer{height:0;overflow:hidden;display:flex;align-items:center;justify-content:center;transition:height 150ms ease,padding 150ms ease;padding:0;margin-top:0}
+.cs-card:hover .cs-card-ai-footer{height:28px;padding:3px 0 2px;margin-top:2px;border-top:1px solid var(--border)}
+.cs-card-ai-btn{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;font-size:10px;font-weight:700;letter-spacing:.04em;border:1px solid var(--primary);border-radius:4px;background:var(--primary-bg);color:var(--primary);cursor:pointer;transition:all 140ms;opacity:0;transform:translateY(3px);white-space:nowrap}
+.cs-card:hover .cs-card-ai-btn{opacity:1;transform:translateY(0)}
+.cs-card-ai-btn:hover{background:var(--primary);color:#fff;box-shadow:0 2px 8px rgba(37,99,235,.35)}
 
 /* Legacy table support (kept for compat) */
 .compare-table{width:100%;border-collapse:collapse;font-size:12px}

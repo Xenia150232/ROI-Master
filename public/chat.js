@@ -1343,6 +1343,32 @@
         dataLines = sectionLines.slice(1);
       }
 
+      // ── GROUPED (comparison) viz ───────────────────────────────
+      if (vizType === 'grouped' || vizType === 'comparison') {
+        // Format: HEADERS: Label | GroupA | GroupB
+        //         Row | $valA | $valB
+        const headerLine = dataLines.find(l => /^HEADERS?:/i.test(l));
+        let labelA = 'Group A', labelB = 'Group B';
+        if (headerLine) {
+          const cols = headerLine.replace(/^HEADERS?:\s*/i, '').split('|').map(s => s.trim());
+          if (cols[1]) labelA = cols[1];
+          if (cols[2]) labelB = cols[2];
+        }
+        const gRows = [];
+        for (const raw of dataLines) {
+          if (/^HEADERS?:/i.test(raw)) continue;
+          if (!raw.includes('|')) continue;
+          const cells = raw.split('|').map(c => c.trim().replace(/\*\*/g, ''));
+          if (cells.length < 3) continue;
+          const rowLabel = cells[0].replace(/^\d+[\.\)]\s*/, '').trim();
+          const valA = extractValue(cells[1]) || parseFloat(cells[1].replace(/[^0-9.]/g, '')) || 0;
+          const valB = extractValue(cells[2]) || parseFloat(cells[2].replace(/[^0-9.]/g, '')) || 0;
+          if (!rowLabel || (valA === 0 && valB === 0)) continue;
+          gRows.push({ label: rowLabel, valA, valB });
+        }
+        return gRows.length >= 2 ? { type: 'grouped', labelA, labelB, rows: gRows } : null;
+      }
+
       // ── TABLE viz ─────────────────────────────────────────────
       if (vizType === 'table') {
         const headerLine = dataLines.find(l => /^HEADERS?:/i.test(l));

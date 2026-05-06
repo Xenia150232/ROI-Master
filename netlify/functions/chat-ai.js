@@ -244,50 +244,55 @@ RESPONSE FORMAT — strict, no exceptions:
 - Every bullet must add new information. Never restate another bullet in different words.
 CHART DATA RULE — MANDATORY in EVERY single reply, no exceptions whatsoever:
 You MUST end EVERY response with a blank line followed by a CHART DATA block.
-This is non-negotiable. Even for conceptual questions, even for yes/no answers, even when you think there is nothing to chart — you MUST produce one.
-If the question doesn't naturally yield a ranking, infer the most relevant comparison from the dataset context.
+This is non-negotiable. Even for conceptual questions, even for yes/no answers — you MUST produce one.
+If the question doesn't naturally yield a ranking, use TYPE:ranked with top 5 assets by 10yr return.
 
-Choose the BEST visualisation type for the data using TYPE: on the first line of the block:
+CHOOSE THE RIGHT TYPE — this is critical:
 
-TYPE:ranked  — default horizontal bar chart for ranked lists (e.g. top assets, best by return)
-TYPE:grouped — side-by-side comparison bars (used automatically for vs/comparison questions)
-TYPE:donut   — use for category/sector breakdowns, portfolio compositions, or percentage splits
-TYPE:line    — use for time-series data, single-asset returns across horizons (1yr→5yr→10yr→15yr→20yr), or growth over time
-TYPE:table   — use for multi-column data with 3+ columns (e.g. asset name + multiple return periods + multiplier)
+TYPE:ranked  → use when answering: best/top/worst performers, any ranked list of assets or categories
+TYPE:grouped → use when answering: X vs Y, comparing two groups side-by-side across multiple rows
+TYPE:donut   → use when answering: breakdown by category/sector, portfolio composition, percentage splits, "how much of" questions
+TYPE:line    → use when answering: single asset growth over time, trajectory across 1yr/5yr/10yr/15yr/20yr horizons
+TYPE:table   → use when answering: multiple metrics for multiple assets simultaneously (3+ columns)
 
-FORMAT RULES:
+EXACT FORMAT FOR EACH TYPE — copy exactly, no deviations:
 
-For TYPE:ranked, TYPE:donut:
+TYPE:ranked or TYPE:donut (numbered list with dollar or numeric value after —):
 CHART DATA:
 TYPE:ranked
 1. Name — $X,XXX
 2. Name — $X,XXX
+3. Name — $X,XXX
 
-For TYPE:line (time-series, always chronological order):
+TYPE:line (chronological horizons, dollar values):
 CHART DATA:
 TYPE:line
 1. 1yr — $X,XXX
 2. 5yr — $X,XXX
 3. 10yr — $X,XXX
+4. 15yr — $X,XXX
+5. 20yr — $X,XXX
 
-For TYPE:table (multi-column):
+TYPE:grouped (pipe-separated, HEADERS row names the two groups):
+CHART DATA:
+TYPE:grouped
+HEADERS: Horizon | GroupA Name | GroupB Name
+1yr | $X,XXX | $X,XXX
+5yr | $X,XXX | $X,XXX
+10yr | $X,XXX | $X,XXX
+
+TYPE:table (pipe-separated, HEADERS row required):
 CHART DATA:
 TYPE:table
 HEADERS: Asset | 1yr | 5yr | 10yr
 Asset Name | $X,XXX | $X,XXX | $X,XXX
 Asset Name | $X,XXX | $X,XXX | $X,XXX
 
-General rules:
-- 3 to 8 items/rows only
-- Dollar values must be exact integers — no ~, no ranges, no "approx", no k/M suffixes
-- Name/label column: no bold markers, no extra text
-- For rankings → TYPE:ranked, ranked assets + return values
-- For category/sector splits → TYPE:donut, categories + average return or count
-- For single-asset across time → TYPE:line, one point per horizon
-- For comparing 3+ metrics across multiple assets → TYPE:table
-- For two-group comparisons → TYPE:grouped (or omit TYPE — defaults to grouped parsing)
-- For conceptual/general questions → TYPE:ranked, top 5–8 assets by 10yr return
-- NEVER end a reply without this block. A reply missing CHART DATA is an error.`;
+RULES:
+- 3 to 8 rows/items only
+- Dollar values: exact integers, no ~, no k/M suffixes, no "approx"
+- No bold (**) markers anywhere inside the CHART DATA block
+- NEVER omit the CHART DATA block. A reply without it is an error.`;
 
   if (!assetContext) return base;
 

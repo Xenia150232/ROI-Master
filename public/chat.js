@@ -677,36 +677,77 @@
   function buildAssetContext(message, assets) {
     const t = message.toLowerCase();
 
-    // Extract meaningful query keywords (strip common stop words)
+    // Normalise common multi-word / abbreviated sector terms before splitting
+    const normalised = t
+      .replace(/semi\s*conductor(s)?/g, 'semiconductors')
+      .replace(/real\s*estate/g, 'realestate')
+      .replace(/emerging\s*market(s)?/g, 'emergingmarkets')
+      .replace(/health\s*care/g, 'healthcare')
+      .replace(/clean\s*energy/g, 'cleanenergy')
+      .replace(/private\s*equity/g, 'privateequity')
+      .replace(/fixed\s*income/g, 'fixedincome')
+      .replace(/small\s*cap/g, 'smallcap')
+      .replace(/mid\s*cap/g, 'midcap')
+      .replace(/large\s*cap/g, 'largecap');
+
+    // Synonym map — maps query terms to category/name substrings to search
+    const SYNONYMS = {
+      semiconductors: ['semiconductor', 'semiconductors'],
+      chips: ['semiconductor', 'semiconductors'],
+      semis: ['semiconductor', 'semiconductors'],
+      realestate: ['real estate'],
+      property: ['real estate'],
+      emergingmarkets: ['emerging market'],
+      em: ['emerging market'],
+      healthcare: ['health', 'pharma', 'biotech', 'medical'],
+      pharma: ['pharma', 'healthcare'],
+      biotech: ['biotech', 'healthcare'],
+      crypto: ['crypto', 'bitcoin', 'ethereum', 'blockchain'],
+      bitcoin: ['bitcoin', 'crypto'],
+      gold: ['gold'],
+      silver: ['silver'],
+      oil: ['oil', 'energy', 'petroleum'],
+      energy: ['energy', 'oil'],
+      bonds: ['bond', 'fixed income', 'treasury'],
+      tech: ['technology', 'software', 'cloud'],
+      ai: ['artificial intelligence', 'ai', 'machine learning'],
+      ev: ['ev', 'electric vehicle', 'automotive'],
+      cleanenergy: ['clean energy', 'renewable', 'solar', 'wind'],
+    };
+
     const stopWords = new Set(['the','and','vs','versus','against','between','or','is','are',
       'was','did','has','have','a','an','what','which','how','why','when','where','does',
       'do','give','me','show','tell','compare','comparison','of','for','in','on','at',
       'to','from','with','about','good','bad','better','best','worst','should','invest',
-      'investment','return','returns','roi','perform','performance']);
-    const keywords = t.split(/\s+/).map(w => w.replace(/[^a-z0-9]/g, '')).filter(w => w.length > 1 && !stopWords.has(w));
+      'investment','return','returns','roi','perform','performance','tell','sector']);
+    const keywords = normalised.split(/\s+/).map(w => w.replace(/[^a-z0-9]/g, '')).filter(w => w.length > 1 && !stopWords.has(w));
 
-    // Find ALL assets that match any keyword — not just the first one
     const relevantSet = new Set();
-    for (const asset of assets) {
-      const name = (asset.name || '').toLowerCase();
-      const ticker = (name.match(/\(([^)]+)\)/) || [])[1] || '';
-      const cat = (asset.section || asset.category || asset.cat || '').toLowerCase();
-      for (const kw of keywords) {
-        if (name.includes(kw) || ticker === kw || cat.includes(kw)) {
-          relevantSet.add(asset);
-          break;
-        }
-      }
-    }
 
-    // Also do a broader contains-check for each keyword as a standalone word in asset name
-    // (catches "gold" matching "Gold ETF (GLD)" and "Gold Miners (GDX)")
+    const addIfCatOrNameMatches = (asset, terms) => {
+      const name = (asset.name || '').toLowerCase();
+      const cat = (asset.category || asset.section || asset.cat || '').toLowerCase();
+      for (const term of terms) {
+        if (name.includes(term) || cat.includes(term)) { relevantSet.add(asset); return; }
+      }
+    };
+
     for (const kw of keywords) {
-      if (kw.length < 2) continue;
+      // Check synonym map first
+      const synonymTerms = SYNONYMS[kw];
+      if (synonymTerms) {
+        for (const asset of assets) addIfCatOrNameMatches(asset, synonymTerms);
+        continue;
+      }
+      // Direct match against name, ticker, category
       for (const asset of assets) {
         const name = (asset.name || '').toLowerCase();
-        // Match as a word boundary (start of word)
-        if (new RegExp(`(^|\\s|\\()${kw}`).test(name)) relevantSet.add(asset);
+        const ticker = (name.match(/\(([^)]+)\)/) || [])[1] || '';
+        const cat = (asset.category || asset.section || asset.cat || '').toLowerCase();
+        if (name.includes(kw) || ticker === kw || cat.includes(kw) ||
+            new RegExp(`(^|\\s|\\()${kw}`).test(name)) {
+          relevantSet.add(asset);
+        }
       }
     }
 

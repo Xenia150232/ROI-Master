@@ -1317,10 +1317,11 @@
   // Strip the CHART DATA: section from text before display, return cleaned text + extracted section
   function splitChartSection(text) {
     const marker = /\n?CHART DATA:\s*\n/i;
-    const idx = text.search(marker);
-    if (idx === -1) return { clean: text, chartSection: null };
+    const match = text.match(marker);
+    if (!match) return { clean: text, chartSection: null };
+    const idx = match.index;
     const clean = text.slice(0, idx).trim();
-    const chartSection = text.slice(idx).replace(/^CHART DATA:\s*\n?/i, '').trim();
+    const chartSection = text.slice(idx + match[0].length).trim();
     return { clean, chartSection };
   }
 

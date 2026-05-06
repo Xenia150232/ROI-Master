@@ -1366,21 +1366,23 @@
       // question text or the data shape, upgrade it here.
       if (vizType === 'ranked') {
         const q = (questionHint || '').toLowerCase();
-        const hasTimeSeries = dataLines.filter(l => /^\d+[\.\)]/.test(l))
-          .every(l => /\b(1y|5y|10y|15y|20y|1yr|5yr|10yr|15yr|20yr)\b/i.test(l));
+        const numberedLines = dataLines.filter(l => /^\d+[\.\)]/.test(l));
+        // Time series: at least half the numbered lines contain a horizon label
+        const horizonLineCount = numberedLines.filter(l => /\b(1y|5y|10y|15y|20y|1yr|5yr|10yr|15yr|20yr)\b/i.test(l)).length;
+        const hasTimeSeries = numberedLines.length >= 2 && horizonLineCount >= Math.ceil(numberedLines.length / 2);
         const hasPipeRows = dataLines.filter(l => !(/^HEADERS?:/i.test(l)) && l.includes('|')).length >= 2;
         const isCategoryQ = /\b(category|categor|sector|class|breakdown|composition|split|proportion|share|allocation|portfolio|pie|which (type|kind|class))\b/i.test(q);
         const isTimeQ = /\b(over time|trajectory|growth|across (horizon|year|time|period)|each (year|horizon)|time.series)\b/i.test(q);
-        const isSingleAsset = /\b(how (did|has|is)|growth of|trajectory of|show me|detail|history)\b/i.test(q) && dataLines.filter(l => /^\d+[\.\)]/.test(l)).length <= 6;
+        const isSingleAsset = /\b(how (did|has|is)|growth of|trajectory of|show me|detail|history|performance|return[s]? of|what (did|has|are|were)|tell me about)\b/i.test(q) && numberedLines.length <= 7;
         const isCompareQ = /\b(compar|versus|vs\.?|vs |against|side.by.side|both|all (assets|of them))\b/i.test(q);
 
         if (hasPipeRows) {
           vizType = isCompareQ ? 'grouped' : 'table';
-        } else if (hasTimeSeries && dataLines.filter(l => /^\d+[\.\)]/.test(l)).length >= 2) {
+        } else if (hasTimeSeries) {
           vizType = 'line';
         } else if (isCategoryQ) {
           vizType = 'donut';
-        } else if ((isTimeQ || isSingleAsset) && dataLines.filter(l => /^\d+[\.\)]/.test(l)).length >= 2) {
+        } else if ((isTimeQ || isSingleAsset) && numberedLines.length >= 2) {
           vizType = 'line';
         }
       }

@@ -247,8 +247,9 @@ You MUST end EVERY response with a blank line then a CHART DATA block. No except
 
 STEP 1 — DECIDE WHICH TYPE to use (choose the MOST specific match, not TYPE:ranked as default):
 
-• Asked about a SINGLE ASSET's returns over time? → TYPE:line
-  (e.g. "how has Apple done?", "show me Bitcoin's growth", "gold over 20 years")
+• Asked about a SINGLE ASSET's returns over time? → TYPE:line  *** MANDATORY — never use TYPE:ranked for single-asset time series ***
+  (e.g. "how has Apple done?", "show me Bitcoin's growth", "gold over 20 years", "how did Tesla perform?", "what are Bitcoin's returns?")
+  The rows MUST be time horizons (1yr, 5yr, 10yr, 15yr, 20yr) — NOT the asset name.
 • Asked to COMPARE EXACTLY TWO groups/assets across horizons? → TYPE:grouped
   (e.g. "stocks vs bonds", "ETFs vs real estate") — ONLY use when there are exactly 2 things to compare
 • Asked to COMPARE THREE OR MORE assets/groups across horizons? → TYPE:table

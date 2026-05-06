@@ -1461,10 +1461,40 @@
 
       // ── LINE viz ───────────────────────────────────────────────
       if (vizType === 'line') {
+        // New multi-series format: SERIES: Name\n horizon — $val\n ...
+        const hasSeriesBlocks = dataLines.some(l => /^SERIES:/i.test(l));
+
+        if (hasSeriesBlocks) {
+          const series = [];
+          let current = null;
+          for (const raw of dataLines) {
+            const seriesMatch = raw.match(/^SERIES:\s*(.+)/i);
+            if (seriesMatch) {
+              current = { name: seriesMatch[1].trim(), points: [] };
+              series.push(current);
+              continue;
+            }
+            if (!current) continue;
+            let val = extractValue(raw);
+            if (!val) {
+              const numMatch = raw.match(/[\s—–:]\s*([\d,]+(?:\.\d+)?)\s*([xX]?)$/);
+              if (numMatch) val = parseFloat(numMatch[1].replace(/,/g, ''));
+            }
+            if (!val || val < 0.01) continue;
+            // Extract horizon label: "1yr", "5yr" etc from start of line
+            const horizonMatch = raw.match(/^(\d+\s*yr|\d+\s*y)\b/i);
+            const label = horizonMatch ? horizonMatch[0].replace(/\s+/, '') : extractName(raw);
+            if (!label) continue;
+            current.points.push({ label, val });
+          }
+          const validSeries = series.filter(s => s.points.length >= 2);
+          if (validSeries.length >= 1) return { type: 'line', series: validSeries };
+        }
+
+        // Legacy single-series format: numbered/bulleted lines
         const points = [];
         for (const raw of dataLines) {
           if (!/^\d+[\.\)]/.test(raw) && !/^[-•]/.test(raw)) continue;
-          // Accept dollar values OR plain numbers
           let val = extractValue(raw);
           if (!val) {
             const numMatch = raw.match(/[\s—–:]\s*([\d,]+(?:\.\d+)?)\s*([xX]?)$/);
@@ -1475,7 +1505,8 @@
           if (!name || name.length < 1) continue;
           points.push({ label: name, val });
         }
-        return points.length >= 2 ? { type: 'line', points } : null;
+        if (points.length >= 2) return { type: 'line', series: [{ name: null, points }] };
+        return null;
       }
 
       // ── Default: ranked bar ────────────────────────────────────
@@ -1577,7 +1608,7 @@
     } else if (chartData.type === 'donut') {
       renderDonutChart(container, chartData.items, chartTitle);
     } else if (chartData.type === 'line') {
-      renderLineChart(container, chartData.points, chartTitle, seedNote);
+      renderLineChart(container, chartData.series, chartTitle, seedNote);
     } else {
       renderRankedChart(container, chartData.items, chartTitle, seedNote);
     }
@@ -2069,19 +2100,23 @@
     container.appendChild(canvas);
   }
 
-  // ── Line chart renderer ─────────────────────────────────────────────────────
-  function renderLineChart(container, points, chartTitle, seedNote) {
+  // ── Line chart renderer — supports multiple series ──────────────────────────
+  function renderLineChart(container, seriesArr, chartTitle, seedNote) {
+    if (!seriesArr || !seriesArr.length) return;
+
     const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
     const FONT = `-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
+    const multiSeries = seriesArr.length > 1;
 
+    const LEGEND_H = multiSeries ? 18 * Math.ceil(seriesArr.length / 3) + 6 : 0;
     const PAD_L  = 54;
-    const PAD_R  = 18;
+    const PAD_R  = 14;
     const PAD_T  = chartTitle ? 30 : 12;
     const PAD_B  = 28;
     const W = 340;
-    const H = 160;
+    const H = 160 + LEGEND_H;
     const chartW = W - PAD_L - PAD_R;
-    const chartH = H - PAD_T - PAD_B;
+    const chartH = H - PAD_T - PAD_B - LEGEND_H;
 
     const canvas = document.createElement('canvas');
     const ratio = window.devicePixelRatio || 1;
@@ -2096,10 +2131,9 @@
     const textColor  = isDark ? '#94a3b8' : '#64748b';
     const titleColor = isDark ? '#e2e6f0' : '#0f1523';
     const gridColor  = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
-    const lineColor  = '#2563eb';
-    const dotColor   = '#2563eb';
-    const areaTop    = isDark ? 'rgba(37,99,235,0.25)' : 'rgba(37,99,235,0.12)';
-    const areaBot    = 'rgba(37,99,235,0)';
+
+    // Series colours — reuse chart palette
+    const SERIES_COLORS = ['#2563eb','#059669','#d97706','#dc2626','#0891b2','#db2777'];
 
     ctx.clearRect(0, 0, W, H);
 
@@ -2111,11 +2145,17 @@
       ctx.fillText(chartTitle, PAD_L, PAD_T / 2);
     }
 
-    const maxVal = Math.max(...points.map(p => p.val));
-    const minVal = Math.min(...points.map(p => p.val));
+    // Compute global min/max across all series
+    const allVals = seriesArr.flatMap(s => s.points.map(p => p.val));
+    const maxVal = Math.max(...allVals);
+    const minVal = Math.min(...allVals);
     const range  = maxVal - minVal || 1;
 
-    const toX = (i) => PAD_L + (i / (points.length - 1)) * chartW;
+    // Use the first series' x-axis labels (horizons should be aligned)
+    const xLabels = seriesArr[0].points.map(p => p.label);
+    const numPts  = xLabels.length;
+
+    const toX = (i) => PAD_L + (numPts <= 1 ? chartW / 2 : (i / (numPts - 1)) * chartW);
     const toY = (v) => PAD_T + chartH - ((v - minVal) / range) * chartH;
 
     // Grid lines (3)
@@ -2135,48 +2175,89 @@
       ctx.fillText(fmtDollar(Math.round(gv)), PAD_L - 4, gy);
     });
 
-    // Area fill
-    const grad = ctx.createLinearGradient(0, PAD_T, 0, PAD_T + chartH);
-    grad.addColorStop(0, areaTop);
-    grad.addColorStop(1, areaBot);
+    // Draw each series
+    seriesArr.forEach((s, si) => {
+      const color = SERIES_COLORS[si % SERIES_COLORS.length];
+      const pts   = s.points;
+      if (!pts.length) return;
 
-    ctx.beginPath();
-    ctx.moveTo(toX(0), toY(points[0].val));
-    points.forEach((p, i) => { if (i > 0) ctx.lineTo(toX(i), toY(p.val)); });
-    ctx.lineTo(toX(points.length - 1), PAD_T + chartH);
-    ctx.lineTo(toX(0), PAD_T + chartH);
-    ctx.closePath();
-    ctx.fillStyle = grad;
-    ctx.fill();
+      // Area fill (only for single series to avoid clutter)
+      if (!multiSeries) {
+        const areaTop = isDark ? 'rgba(37,99,235,0.25)' : 'rgba(37,99,235,0.12)';
+        const grad = ctx.createLinearGradient(0, PAD_T, 0, PAD_T + chartH);
+        grad.addColorStop(0, areaTop);
+        grad.addColorStop(1, 'rgba(37,99,235,0)');
+        ctx.beginPath();
+        ctx.moveTo(toX(0), toY(pts[0].val));
+        pts.forEach((p, i) => { if (i > 0) ctx.lineTo(toX(i), toY(p.val)); });
+        ctx.lineTo(toX(pts.length - 1), PAD_T + chartH);
+        ctx.lineTo(toX(0), PAD_T + chartH);
+        ctx.closePath();
+        ctx.fillStyle = grad;
+        ctx.fill();
+      }
 
-    // Line
-    ctx.beginPath();
-    ctx.moveTo(toX(0), toY(points[0].val));
-    points.forEach((p, i) => { if (i > 0) ctx.lineTo(toX(i), toY(p.val)); });
-    ctx.strokeStyle = lineColor;
-    ctx.lineWidth = 2;
-    ctx.lineJoin = 'round';
-    ctx.stroke();
-
-    // Dots + x-axis labels
-    points.forEach((p, i) => {
-      const x = toX(i);
-      const y = toY(p.val);
+      // Line
       ctx.beginPath();
-      ctx.arc(x, y, 3.5, 0, Math.PI * 2);
-      ctx.fillStyle = dotColor;
-      ctx.fill();
-      ctx.strokeStyle = isDark ? '#111623' : '#ffffff';
-      ctx.lineWidth = 1.5;
+      ctx.moveTo(toX(0), toY(pts[0].val));
+      pts.forEach((p, i) => { if (i > 0) ctx.lineTo(toX(i), toY(p.val)); });
+      ctx.strokeStyle = color;
+      ctx.lineWidth = multiSeries ? 1.8 : 2;
+      ctx.lineJoin = 'round';
       ctx.stroke();
 
+      // Dots
+      pts.forEach((p, i) => {
+        const x = toX(i);
+        const y = toY(p.val);
+        ctx.beginPath();
+        ctx.arc(x, y, 3, 0, Math.PI * 2);
+        ctx.fillStyle = color;
+        ctx.fill();
+        ctx.strokeStyle = isDark ? '#111623' : '#ffffff';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+      });
+    });
+
+    // X-axis labels (shared)
+    xLabels.forEach((lbl, i) => {
       ctx.font = `500 9px ${FONT}`;
       ctx.fillStyle = textColor;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'top';
-      const lbl = p.label.length > 5 ? p.label.slice(0, 4) + '…' : p.label;
-      ctx.fillText(lbl, x, PAD_T + chartH + 4);
+      const short = lbl.length > 5 ? lbl.slice(0, 4) + '…' : lbl;
+      ctx.fillText(short, toX(i), PAD_T + chartH + 4);
     });
+
+    // Legend for multi-series
+    if (multiSeries) {
+      const legendY = PAD_T + chartH + PAD_B - 4;
+      let lx = PAD_L;
+      let ly = legendY;
+      const rowMaxWidth = W - PAD_L - PAD_R;
+      seriesArr.forEach((s, si) => {
+        if (!s.name) return;
+        const color = SERIES_COLORS[si % SERIES_COLORS.length];
+        ctx.font = `500 9.5px ${FONT}`;
+        const labelW = ctx.measureText(s.name).width + 22;
+        if (lx + labelW > PAD_L + rowMaxWidth && lx > PAD_L) {
+          lx = PAD_L;
+          ly += 16;
+        }
+        // Colour swatch
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.roundRect ? ctx.roundRect(lx, ly + 2, 10, 6, 2) : ctx.rect(lx, ly + 2, 10, 6);
+        ctx.fill();
+        // Label
+        ctx.fillStyle = textColor;
+        ctx.textBaseline = 'middle';
+        ctx.textAlign = 'left';
+        ctx.fillText(s.name, lx + 13, ly + 5);
+        lx += labelW;
+      });
+    }
 
     container.appendChild(canvas);
 

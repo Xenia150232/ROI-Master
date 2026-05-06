@@ -247,9 +247,9 @@ You MUST end EVERY response with a blank line then a CHART DATA block. No except
 
 STEP 1 — DECIDE WHICH TYPE to use (choose the MOST specific match, not TYPE:ranked as default):
 
-• Asked about a SINGLE ASSET's returns over time? → TYPE:line  *** MANDATORY — never use TYPE:ranked for single-asset time series ***
-  (e.g. "how has Apple done?", "show me Bitcoin's growth", "gold over 20 years", "how did Tesla perform?", "what are Bitcoin's returns?")
-  The rows MUST be time horizons (1yr, 5yr, 10yr, 15yr, 20yr) — NOT the asset name.
+• Asked about ONE OR MORE ASSET's returns over time? → TYPE:line  *** MANDATORY — never use TYPE:ranked for time-series data ***
+  (e.g. "how has Apple done?", "show me Bitcoin's growth", "gold over 20 years", "gold vs bonds over time", "how did Tesla perform?")
+  Use SERIES: blocks — one per asset. Each series lists horizons in order (1yr first).
 • Asked to COMPARE EXACTLY TWO groups/assets across horizons? → TYPE:grouped
   (e.g. "stocks vs bonds", "ETFs vs real estate") — ONLY use when there are exactly 2 things to compare
 • Asked to COMPARE THREE OR MORE assets/groups across horizons? → TYPE:table
@@ -269,14 +269,21 @@ TYPE:ranked
 1. Asset Name — $X,XXX
 2. Asset Name — $X,XXX
 
-TYPE:line — chronological time points, asset name then dollar value (always chronological: 1yr first):
+TYPE:line — one SERIES: block per asset, each with chronological time points (1yr first). Single asset = one block, multiple assets = multiple blocks:
 CHART DATA:
 TYPE:line
-1. 1yr — $X,XXX
-2. 5yr — $X,XXX
-3. 10yr — $X,XXX
-4. 15yr — $X,XXX
-5. 20yr — $X,XXX
+SERIES: Asset Name A
+1yr — $X,XXX
+5yr — $X,XXX
+10yr — $X,XXX
+15yr — $X,XXX
+20yr — $X,XXX
+SERIES: Asset Name B
+1yr — $X,XXX
+5yr — $X,XXX
+10yr — $X,XXX
+15yr — $X,XXX
+20yr — $X,XXX
 
 TYPE:donut — numbered list, category name then dollar or numeric value:
 CHART DATA:

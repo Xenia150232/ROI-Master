@@ -517,11 +517,12 @@
       return;
     }
 
+    const pillUsedAI = !!answer;
     if (!answer) {
       answer = answerQuestion(q.key);
     }
 
-    addBotMsg(answer);
+    addBotMsg(answer, { aiResponse: pillUsedAI });
     const replyStr = (answer && typeof answer === 'object') ? answer.reply : answer;
     pushHistory('assistant', replyStr);
     showFollowUpPills(generateFollowUps(q.label, replyStr));
@@ -578,12 +579,13 @@
     }
 
     // Fall back if AI is unavailable or errored
+    const usedAI = !!answer;
     if (!answer) {
       await simulatedDelay(700 + Math.random() * 500);
       answer = answerFreeText(text);
     }
 
-    addBotMsg(answer);
+    addBotMsg(answer, { aiResponse: usedAI });
     // pushHistory always takes a plain string
     const replyText = (answer && typeof answer === 'object') ? answer.reply : answer;
     pushHistory('assistant', replyText);
@@ -1031,8 +1033,9 @@
             addRateLimitMsg();
             return;
           }
+          const followUpUsedAI = !!answer;
           if (!answer) answer = answerFreeText(text);
-          addBotMsg(answer);
+          addBotMsg(answer, { aiResponse: followUpUsedAI });
           const replyStr = (answer && typeof answer === 'object') ? answer.reply : answer;
           pushHistory('assistant', replyStr);
           showFollowUpPills(generateFollowUps(text, replyStr));
@@ -2227,6 +2230,7 @@
     const rawText   = (input && typeof input === 'object') ? (input.reply || '') : (input || '');
     const reasoning = (input && typeof input === 'object' && input.reasoning) ? input.reasoning : '';
     const noChart   = !!(opts && opts.noChart);
+    const aiResponse = !!(opts && opts.aiResponse);
 
     // Split off the CHART DATA: section so it doesn't appear in the displayed message
     const { clean: text, chartSection } = splitChartSection(rawText);
@@ -2258,9 +2262,10 @@
     if (!noChart) {
       let chartData = extractChartData(rawText, lastUserQuestion);
 
-      // Guaranteed fallback: if parsing produced nothing, generate a ranked chart
-      // from the top assets by 10-year return so every reply always has a visualisation
-      if (!chartData) {
+      // Fallback chart: only for local (non-AI) responses. When the AI is connected
+      // but omits or mis-formats the CHART DATA block, show nothing rather than an
+      // unrelated default chart.
+      if (!chartData && !aiResponse) {
         const fallbackAssets = getAssets();
         if (fallbackAssets && fallbackAssets.length >= 2) {
           const top = fallbackAssets
@@ -2366,12 +2371,13 @@
 
     // If we have pinned assets (compare flow) and AI failed, run a deterministic local comparison
     // instead of falling through to answerFreeText (which would keyword-match and return wrong assets)
+    const triggerUsedAI = !!answer;
     if (!answer && pinnedAssets && pinnedAssets.length) {
       answer = localComparePinned(pinnedAssets);
     }
     if (!answer) answer = answerFreeText(aiQuery);
 
-    addBotMsg(answer);
+    addBotMsg(answer, { aiResponse: triggerUsedAI });
     const replyStr = (answer && typeof answer === 'object') ? answer.reply : answer;
     pushHistory('assistant', replyStr);
     showFollowUpPills(generateFollowUps(aiQuery, replyStr));

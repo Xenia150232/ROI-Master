@@ -478,7 +478,7 @@
     showTyping(true);
     setTimeout(() => {
       showTyping(false);
-      addBotMsg(prompt);
+      addBotMsg(prompt, { noChart: true });
       pillsSection.style.display = '';
       pillsSection.classList.remove('pills-pulse');
       void pillsSection.offsetWidth;
@@ -488,7 +488,7 @@
 
   // ── Welcome message ──────────────────────────────────────────
   function showWelcome() {
-    addBotMsg('Ask me anything about the assets, returns, or ROI — I\'ll analyse the loaded dataset and answer instantly.');
+    addBotMsg('Ask me anything about the assets, returns, or ROI — I\'ll analyse the loaded dataset and answer instantly.', { noChart: true });
   }
 
   // ── Pill handler ─────────────────────────────────────────────
@@ -2222,10 +2222,11 @@
     updateCallCounter();
   }
 
-  function addBotMsg(input) {
+  function addBotMsg(input, opts) {
     // Accept either a plain string or {reply, reasoning} object from fetchAIAnswer
     const rawText   = (input && typeof input === 'object') ? (input.reply || '') : (input || '');
     const reasoning = (input && typeof input === 'object' && input.reasoning) ? input.reasoning : '';
+    const noChart   = !!(opts && opts.noChart);
 
     // Split off the CHART DATA: section so it doesn't appear in the displayed message
     const { clean: text, chartSection } = splitChartSection(rawText);
@@ -2253,29 +2254,31 @@
     const textEl = el('div', 'chat-msg-text', msg);
     textEl.innerHTML = formatBotText(text);
 
-    // Attempt to draw an inline chart — use rawText so CHART DATA: section is available
-    let chartData = extractChartData(rawText, lastUserQuestion);
+    // Attempt to draw an inline chart — skip for intro/re-engagement messages
+    if (!noChart) {
+      let chartData = extractChartData(rawText, lastUserQuestion);
 
-    // Guaranteed fallback: if parsing produced nothing, generate a ranked chart
-    // from the top assets by 10-year return so every reply always has a visualisation
-    if (!chartData) {
-      const fallbackAssets = getAssets();
-      if (fallbackAssets && fallbackAssets.length >= 2) {
-        const top = fallbackAssets
-          .filter(a => a.v10 && !isNaN(a.v10))
-          .sort((a, b) => b.v10 - a.v10)
-          .slice(0, 7);
-        if (top.length >= 2) {
-          chartData = { type: 'ranked', items: top.map(a => ({ name: a.name, val: Number(a.v10) })) };
+      // Guaranteed fallback: if parsing produced nothing, generate a ranked chart
+      // from the top assets by 10-year return so every reply always has a visualisation
+      if (!chartData) {
+        const fallbackAssets = getAssets();
+        if (fallbackAssets && fallbackAssets.length >= 2) {
+          const top = fallbackAssets
+            .filter(a => a.v10 && !isNaN(a.v10))
+            .sort((a, b) => b.v10 - a.v10)
+            .slice(0, 7);
+          if (top.length >= 2) {
+            chartData = { type: 'ranked', items: top.map(a => ({ name: a.name, val: Number(a.v10) })) };
+          }
         }
       }
-    }
 
-    if (chartData) {
-      const titleMatch = (lastUserQuestion + ' ' + text).match(/top \d+|best \d+|worst \d+|ranked|comparison|compare|breakdown|category|class|horizon|growth|trend/i);
-      const chartTitle = titleMatch ? titleMatch[0].replace(/\b\w/g, c => c.toUpperCase()) : 'Top 10yr Returns';
-      const chartWrap = el('div', 'chat-chart-wrap', msg);
-      renderChatChart(chartWrap, chartData, chartTitle, getSeedNote(text));
+      if (chartData) {
+        const titleMatch = (lastUserQuestion + ' ' + text).match(/top \d+|best \d+|worst \d+|ranked|comparison|compare|breakdown|category|class|horizon|growth|trend/i);
+        const chartTitle = titleMatch ? titleMatch[0].replace(/\b\w/g, c => c.toUpperCase()) : 'Top 10yr Returns';
+        const chartWrap = el('div', 'chat-chart-wrap', msg);
+        renderChatChart(chartWrap, chartData, chartTitle, getSeedNote(text));
+      }
     }
 
     // Scroll so the TOP of the new message is visible

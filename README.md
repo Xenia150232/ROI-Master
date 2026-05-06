@@ -38,7 +38,7 @@ A tool that lets you see growth across investments and asset classes with advanc
 - **CSV import** — upload your own CSV to replace the default dataset
 - **CSV export** — download the current filtered view as a CSV
 - **AI Chat Assistant — answers in words *and* draws its own charts and tables live** — ask a question and the assistant responds in plain English, then automatically renders the most appropriate visualisation right inside the chat bubble. No button to press, no separate view — the chart or table appears as part of the reply, on the fly. [Jump to full AI Chat section →](#ai-chat-assistant)
-  - **Live in-chat bar charts** — Canvas-rendered horizontal bar chart injected directly into the message bubble for any ranked list, top-N result, or best-by-return query
+  - **Live in-chat bar charts** — Canvas-rendered horizontal bar chart injected directly into the message bubble. Downloadable as an image, chat history shows your graphs when you return 
   - **Comparison charts** — side-by-side bars when the answer contrasts two groups (e.g. Stocks vs ETFs across time horizons)
   - **Donut charts** — rendered automatically for category breakdowns, sector compositions, and percentage-split questions (e.g. "which asset class dominates the top performers?")
   - **Line charts** — drawn for time-series data and single-asset return trajectories across all five horizons (1Y → 5Y → 10Y → 15Y → 20Y), showing the growth curve at a glance

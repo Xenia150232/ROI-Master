@@ -1369,14 +1369,15 @@
   function extractChartData(text, questionHint) {
     // Helper: extract the largest dollar value anywhere in a string
     function extractValue(str) {
-      const matches = [...str.matchAll(/~?\$\s*([\d,]+(?:\.\d+)?)\s*([kKmMbB]?)/g)];
+      // Match dollar values: optional ~, digits with commas, optional decimal, optional k/m/b suffix at word boundary
+      const matches = [...str.matchAll(/~?\$\s*([\d,]+(?:\.\d+)?)\s*([kKmMbB](?![a-zA-Z]))?/g)];
       let best = 0;
       for (const m of matches) {
         let v = parseFloat(m[1].replace(/,/g, ''));
         const suffix = (m[2] || '').toLowerCase();
         if (suffix === 'k') v *= 1000;
-        if (suffix === 'm') v *= 1000000;
-        if (suffix === 'b') v *= 1000000000;
+        else if (suffix === 'm') v *= 1000000;
+        else if (suffix === 'b') v *= 1000000000;
         if (v > best) best = v;
       }
       return best > 0 ? Math.round(best) : 0;

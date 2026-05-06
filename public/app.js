@@ -1070,7 +1070,7 @@ function renderCompareStats(selected){
     if(bestY)       scLines.push(`• Peak Period: ${bestY} years`);
     if(scorePct!=null) scLines.push(`• Score vs peers in this comparison: ${scorePct}%`);
     scLines.push(`\nDoes this ranking make sense? Walk me through what's behind this asset's performance, its risk profile, and whether it's genuinely worth holding over the long term.`);
-    const scKey=_storePrompt({display:`Why is ${r.name} ranked ${rankLabel}? Break it down for me.`, prompt:scLines.join('\n')});
+    const scKey=_storePrompt({display: _pickTemplate(_scorecardDisplayTemplates, r), prompt:scLines.join('\n')});
 
     html+=`<div class="cs-card">
       <div class="cs-card-head">
@@ -1772,6 +1772,33 @@ const _aiPromptCache = {};
 let _aiPromptIdx = 0;
 function _storePrompt(text){ const k=_aiPromptIdx++; _aiPromptCache[k]=text; return k; }
 
+const _rowDisplayTemplates = [
+  r => `Tell me about ${r.name} — and its wider industry`,
+  r => `What's the real story behind ${r.name}'s long-term returns?`,
+  r => `Break down ${r.name} for me — the good, the bad and the risks`,
+  r => `Is ${r.name} actually worth holding? Let's look at the data`,
+  r => `How does ${r.name} hold up compared to the rest of the ${r.section} class?`,
+  r => `Walk me through ${r.name} — performance drivers and what to watch out for`,
+  r => `What makes ${r.name} tick? Performance, sector context and key risks`,
+];
+
+const _scorecardDisplayTemplates = [
+  r => `Let's deep dive into ${r.name} and how it compares to the top assets in the dataset`,
+  r => `What's behind ${r.name}'s performance — and how does its category really stack up?`,
+  r => `Give me the full picture on ${r.name} — strengths, weaknesses and peer comparison`,
+  r => `Is ${r.name} a long-term compounder or a one-trick pony? Let's find out`,
+  r => `How does ${r.name} compare to the best assets across the whole dataset?`,
+  r => `Analyse ${r.name} — does its track record justify a place in a long-term portfolio?`,
+  r => `${r.name} deep dive — sector performance, risk profile and where it really stands`,
+];
+
+function _pickTemplate(templates, r){
+  // deterministic but varies by asset name so each asset gets a consistent variant
+  let hash=0;
+  for(let i=0;i<r.name.length;i++) hash=(hash*31+r.name.charCodeAt(i))>>>0;
+  return templates[hash % templates.length](r);
+}
+
 function buildAssetRowAiPrompt(r){
   const bestYr=YEARS.reduce((b,y)=>r['v'+y]!=null&&(b==null||r['v'+y]>r['v'+b])?y:b,null);
   const lines=[];
@@ -1783,8 +1810,7 @@ function buildAssetRowAiPrompt(r){
   if(r.v20!=null) lines.push(`• 20 Years: ${r.vs20}  (${r.gs20})`);
   if(bestYr)      lines.push(`\nPeak period: ${bestYr} years`);
   lines.push(`\nBased on this data, give me a clear breakdown of this asset — what has driven its performance, what are the key risks an investor should know about, and how does it stack up against other assets in the ${r.section} class?`);
-  const display=`Tell me about ${r.name} — performance, risks and how it compares.`;
-  return {display, prompt:lines.join('\n')};
+  return {display: _pickTemplate(_rowDisplayTemplates, r), prompt: lines.join('\n')};
 }
 
 function tableRowAiClick(e,k){

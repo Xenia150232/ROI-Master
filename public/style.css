@@ -815,6 +815,24 @@ input[type=checkbox]{accent-color:var(--primary);width:15px;height:15px;cursor:p
 .chat-chart-canvas{display:block;border-radius:6px;max-width:100%}
 .chat-chart-note{font-size:10.5px;color:var(--muted);margin-top:6px;padding-top:5px;border-top:1px solid var(--border);font-style:italic}
 
+/* In-chat table */
+.chat-table-wrap{margin-top:10px;overflow-x:auto;border-radius:8px;border:1px solid var(--border)}
+.chat-table-title{font-size:11px;font-weight:700;color:var(--text);padding:8px 10px 6px;border-bottom:1px solid var(--border);background:var(--surface2);border-radius:8px 8px 0 0}
+.chat-table{width:100%;border-collapse:collapse;font-size:11px;font-family:var(--font);background:var(--surface)}
+.chat-th{padding:5px 10px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);background:var(--surface2);border-bottom:1px solid var(--border);white-space:nowrap}
+.chat-th-label{text-align:left}
+.chat-th-val{text-align:right}
+.chat-td{padding:5px 10px;color:var(--text);border-bottom:1px solid var(--border);vertical-align:middle}
+.chat-td:last-child,.chat-th:last-child{border-right:none}
+.chat-td-label{font-weight:500;color:var(--text)}
+.chat-td-val{text-align:right;font-weight:600;color:var(--muted);font-variant-numeric:tabular-nums}
+.chat-tr-alt{background:var(--surface2)}
+.chat-td-high{color:#059669!important}
+.chat-td-low{color:#dc2626!important}
+[data-theme="dark"] .chat-td-high{color:#34d399!important}
+[data-theme="dark"] .chat-td-low{color:#f87171!important}
+.chat-table tbody tr:last-child td{border-bottom:none}
+
 /* ── Daily call counter bar (sits below header, full width) ──── */
 .chat-call-counter-bar{
   display:flex;align-items:center;gap:5px;justify-content:center;

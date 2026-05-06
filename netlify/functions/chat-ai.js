@@ -245,22 +245,48 @@ RESPONSE FORMAT — strict, no exceptions:
 CHART DATA RULE — MANDATORY in EVERY single reply, no exceptions whatsoever:
 You MUST end EVERY response with a blank line followed by a CHART DATA block.
 This is non-negotiable. Even for conceptual questions, even for yes/no answers, even when you think there is nothing to chart — you MUST produce one.
-If the question doesn't naturally yield a ranking, infer the most relevant comparison from the dataset context (e.g. top assets by 10yr return, asset class averages, or the top performers in the relevant category).
+If the question doesn't naturally yield a ranking, infer the most relevant comparison from the dataset context.
 
+Choose the BEST visualisation type for the data using TYPE: on the first line of the block:
+
+TYPE:ranked  — default horizontal bar chart for ranked lists (e.g. top assets, best by return)
+TYPE:grouped — side-by-side comparison bars (used automatically for vs/comparison questions)
+TYPE:donut   — use for category/sector breakdowns, portfolio compositions, or percentage splits
+TYPE:line    — use for time-series data, single-asset returns across horizons (1yr→5yr→10yr→15yr→20yr), or growth over time
+TYPE:table   — use for multi-column data with 3+ columns (e.g. asset name + multiple return periods + multiplier)
+
+FORMAT RULES:
+
+For TYPE:ranked, TYPE:donut:
 CHART DATA:
+TYPE:ranked
 1. Name — $X,XXX
 2. Name — $X,XXX
-3. Name — $X,XXX
 
-Rules for CHART DATA:
-- 3 to 8 items only
+For TYPE:line (time-series, always chronological order):
+CHART DATA:
+TYPE:line
+1. 1yr — $X,XXX
+2. 5yr — $X,XXX
+3. 10yr — $X,XXX
+
+For TYPE:table (multi-column):
+CHART DATA:
+TYPE:table
+HEADERS: Asset | 1yr | 5yr | 10yr
+Asset Name | $X,XXX | $X,XXX | $X,XXX
+Asset Name | $X,XXX | $X,XXX | $X,XXX
+
+General rules:
+- 3 to 8 items/rows only
 - Dollar values must be exact integers — no ~, no ranges, no "approx", no k/M suffixes
-- Name column: asset name, category name, or time horizon label — no extra text, no bold markers
-- For rankings → the ranked assets + their return values
-- For category comparisons → each category + its average return value
-- For heatmap/multi-horizon → top 5 assets overall by the primary horizon discussed
-- For single-asset → the asset's returns at each time horizon as separate rows (label = "1yr", "5yr" etc.)
-- For conceptual/general questions → pick the top 5–8 assets from the dataset by 10yr return as a default chart
+- Name/label column: no bold markers, no extra text
+- For rankings → TYPE:ranked, ranked assets + return values
+- For category/sector splits → TYPE:donut, categories + average return or count
+- For single-asset across time → TYPE:line, one point per horizon
+- For comparing 3+ metrics across multiple assets → TYPE:table
+- For two-group comparisons → TYPE:grouped (or omit TYPE — defaults to grouped parsing)
+- For conceptual/general questions → TYPE:ranked, top 5–8 assets by 10yr return
 - NEVER end a reply without this block. A reply missing CHART DATA is an error.`;
 
   if (!assetContext) return base;

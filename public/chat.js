@@ -1316,18 +1316,85 @@
     // ── Priority 1: explicit CHART DATA: section from AI ────────────────────
     const { chartSection } = splitChartSection(text);
     if (chartSection) {
-      const items = [];
-      for (const raw of chartSection.split('\n')) {
-        const line = raw.trim();
-        if (!line) continue;
-        if (!/^\d+[\.\)]/.test(line) && !/^[-•]/.test(line)) continue;
-        const val = extractValue(line);
-        if (val < 100) continue;
-        const name = extractName(line);
-        if (!name || name.length < 3) continue;
-        if (!items.find(x => x.name === name) && items.length < 10) {
-          items.push({ name, val });
+      // Detect optional TYPE: directive on first non-blank line
+      const sectionLines = chartSection.split('\n').map(l => l.trim()).filter(Boolean);
+      let vizType = 'ranked';
+      let dataLines = sectionLines;
+      const typeMatch = sectionLines[0] && sectionLines[0].match(/^TYPE:\s*(\w+)/i);
+      if (typeMatch) {
+        vizType = typeMatch[1].toLowerCase();
+        dataLines = sectionLines.slice(1);
+      }
+
+      // ── TABLE viz ─────────────────────────────────────────────
+      if (vizType === 'table') {
+        // Expected format:
+        //   HEADERS: Col1 | Col2 | Col3
+        //   Row label | val | val
+        const headerLine = dataLines.find(l => /^HEADERS?:/i.test(l));
+        const headers = headerLine
+          ? headerLine.replace(/^HEADERS?:\s*/i, '').split('|').map(h => h.trim()).filter(Boolean)
+          : null;
+        const rows = [];
+        for (const raw of dataLines) {
+          if (/^HEADERS?:/i.test(raw)) continue;
+          if (!raw.includes('|')) continue;
+          const cells = raw.split('|').map(c => c.trim().replace(/\*\*/g, ''));
+          if (cells.length >= 2) rows.push(cells);
         }
+        if (rows.length >= 1) return { type: 'table', headers, rows };
+      }
+
+      // ── DONUT viz ──────────────────────────────────────────────
+      if (vizType === 'donut' || vizType === 'pie') {
+        const items = [];
+        for (const raw of dataLines) {
+          if (!/^\d+[\.\)]/.test(raw) && !/^[-•]/.test(raw)) continue;
+          const val = extractValue(raw);
+          if (val < 1) continue;
+          const name = extractName(raw);
+          if (!name || name.length < 2) continue;
+          if (!items.find(x => x.name === name) && items.length < 10) items.push({ name, val });
+        }
+        // Also support percentage-only format: "Name — 23%"
+        if (!items.length) {
+          for (const raw of dataLines) {
+            if (!/^\d+[\.\)]/.test(raw) && !/^[-•]/.test(raw)) continue;
+            const pctMatch = raw.match(/([\d.]+)%/);
+            if (!pctMatch) continue;
+            const val = parseFloat(pctMatch[1]);
+            const name = extractName(raw);
+            if (!name || name.length < 2) continue;
+            if (!items.find(x => x.name === name) && items.length < 10) items.push({ name, val });
+          }
+        }
+        if (items.length >= 2) return { type: 'donut', items };
+      }
+
+      // ── LINE viz ───────────────────────────────────────────────
+      if (vizType === 'line') {
+        // Expected format: label — $value (one point per line, in order)
+        const points = [];
+        for (const raw of dataLines) {
+          if (!/^\d+[\.\)]/.test(raw) && !/^[-•]/.test(raw)) continue;
+          const val = extractValue(raw);
+          if (val < 1) continue;
+          const name = extractName(raw);
+          if (!name || name.length < 1) continue;
+          points.push({ label: name, val });
+        }
+        if (points.length >= 2) return { type: 'line', points };
+      }
+
+      // ── Default: ranked bar ────────────────────────────────────
+      const items = [];
+      for (const raw of dataLines) {
+        if (!/^\d+[\.\)]/.test(raw) && !/^[-•]/.test(raw)) continue;
+        const val = extractValue(raw);
+        if (val < 100) continue;
+        const name = extractName(raw);
+        if (!name || name.length < 3) continue;
+        if (!items.find(x => x.name === name) && items.length < 10) items.push({ name, val });
       }
       if (items.length >= 2) return { type: 'ranked', items };
     }
@@ -1412,6 +1479,12 @@
     if (!chartData) return;
     if (chartData.type === 'grouped') {
       renderGroupedChart(container, chartData, chartTitle, seedNote);
+    } else if (chartData.type === 'table') {
+      renderChatTable(container, chartData, chartTitle);
+    } else if (chartData.type === 'donut') {
+      renderDonutChart(container, chartData.items, chartTitle);
+    } else if (chartData.type === 'line') {
+      renderLineChart(container, chartData.points, chartTitle, seedNote);
     } else {
       renderRankedChart(container, chartData.items, chartTitle, seedNote);
     }
@@ -1597,6 +1670,295 @@
       ctx.fillStyle = color;
       ctx.textAlign = 'left';
       ctx.fillText(fmtDollar(item.val), bx + barW + 5, y + BAR_H / 2);
+    });
+
+    container.appendChild(canvas);
+
+    if (seedNote) {
+      const note = document.createElement('div');
+      note.className = 'chat-chart-note';
+      note.textContent = seedNote;
+      container.appendChild(note);
+    }
+  }
+
+  // ── Table renderer ──────────────────────────────────────────────────────────
+  function renderChatTable(container, chartData, chartTitle) {
+    const { headers, rows } = chartData;
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+
+    const wrap = document.createElement('div');
+    wrap.className = 'chat-table-wrap';
+
+    if (chartTitle) {
+      const titleEl = document.createElement('div');
+      titleEl.className = 'chat-table-title';
+      titleEl.textContent = chartTitle;
+      wrap.appendChild(titleEl);
+    }
+
+    const tableEl = document.createElement('table');
+    tableEl.className = 'chat-table';
+
+    if (headers && headers.length) {
+      const thead = document.createElement('thead');
+      const tr = document.createElement('tr');
+      headers.forEach((h, i) => {
+        const th = document.createElement('th');
+        th.textContent = h;
+        th.className = i === 0 ? 'chat-th chat-th-label' : 'chat-th chat-th-val';
+        tr.appendChild(th);
+      });
+      thead.appendChild(tr);
+      tableEl.appendChild(thead);
+    }
+
+    const tbody = document.createElement('tbody');
+    rows.forEach((cells, ri) => {
+      const tr = document.createElement('tr');
+      tr.className = ri % 2 === 0 ? 'chat-tr' : 'chat-tr chat-tr-alt';
+      cells.forEach((cell, ci) => {
+        const td = document.createElement('td');
+        const isDollar = /^\$[\d,]+/.test(cell);
+        const isNum = /^[\d,]+(\.\d+)?[x%]?$/.test(cell.replace(/^\$/, ''));
+        td.className = ci === 0 ? 'chat-td chat-td-label' : 'chat-td chat-td-val';
+        // Colour-code values: green for high returns, red for negatives
+        if (ci > 0 && isDollar) {
+          const raw = parseFloat(cell.replace(/[$,]/g, ''));
+          const seed = (typeof window.seedMultiplier !== 'undefined') ? 1000 * window.seedMultiplier : 1000;
+          if (raw >= seed * 5) td.classList.add('chat-td-high');
+          else if (raw <= seed * 0.8) td.classList.add('chat-td-low');
+        }
+        td.textContent = cell;
+        tr.appendChild(td);
+      });
+      tbody.appendChild(tr);
+    });
+
+    tableEl.appendChild(tbody);
+    wrap.appendChild(tableEl);
+    container.appendChild(wrap);
+  }
+
+  // ── Donut chart renderer ────────────────────────────────────────────────────
+  function renderDonutChart(container, items, chartTitle) {
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const FONT = `-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
+
+    const total = items.reduce((s, d) => s + d.val, 0);
+    if (!total) return;
+
+    const SIZE = 140;
+    const LEGEND_ROW_H = 18;
+    const PAD = 12;
+    const TITLE_H = chartTitle ? 26 : 0;
+    const legendH = items.length * LEGEND_ROW_H + 4;
+    const W = SIZE + PAD * 2 + 130; // donut + legend
+    const H = Math.max(SIZE, legendH) + TITLE_H + PAD * 2;
+
+    const canvas = document.createElement('canvas');
+    const ratio = window.devicePixelRatio || 1;
+    canvas.width  = W * ratio;
+    canvas.height = H * ratio;
+    canvas.style.width  = W + 'px';
+    canvas.style.height = H + 'px';
+    canvas.className = 'chat-chart-canvas';
+    const ctx = canvas.getContext('2d');
+    ctx.scale(ratio, ratio);
+
+    const textColor  = isDark ? '#cbd5e1' : '#334155';
+    const titleColor = isDark ? '#e2e6f0' : '#0f1523';
+    const bgColor    = isDark ? '#111623' : '#ffffff';
+
+    ctx.clearRect(0, 0, W, H);
+
+    if (chartTitle) {
+      ctx.font = `700 12px ${FONT}`;
+      ctx.fillStyle = titleColor;
+      ctx.textBaseline = 'middle';
+      ctx.textAlign = 'left';
+      ctx.fillText(chartTitle, PAD, TITLE_H / 2);
+    }
+
+    // Donut
+    const cx = PAD + SIZE / 2;
+    const cy = TITLE_H + PAD + SIZE / 2;
+    const outerR = SIZE / 2 - 4;
+    const innerR = outerR * 0.55;
+    let startAngle = -Math.PI / 2;
+
+    items.forEach((item, i) => {
+      const slice = (item.val / total) * Math.PI * 2;
+      const color = CHART_PALETTE[i % CHART_PALETTE.length];
+
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.arc(cx, cy, outerR, startAngle, startAngle + slice);
+      ctx.closePath();
+      ctx.fillStyle = color;
+      ctx.globalAlpha = 0.9;
+      ctx.fill();
+      ctx.globalAlpha = 1;
+
+      // Thin separator
+      ctx.beginPath();
+      ctx.arc(cx, cy, outerR, startAngle, startAngle + slice);
+      ctx.strokeStyle = bgColor;
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      startAngle += slice;
+    });
+
+    // Donut hole
+    ctx.beginPath();
+    ctx.arc(cx, cy, innerR, 0, Math.PI * 2);
+    ctx.fillStyle = bgColor;
+    ctx.fill();
+
+    // Centre label
+    ctx.font = `700 11px ${FONT}`;
+    ctx.fillStyle = titleColor;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(items.length + ' items', cx, cy);
+
+    // Legend
+    const lx = PAD + SIZE + 10;
+    const lyStart = TITLE_H + PAD + Math.max(0, (SIZE - legendH) / 2);
+    items.forEach((item, i) => {
+      const ly = lyStart + i * LEGEND_ROW_H;
+      const color = CHART_PALETTE[i % CHART_PALETTE.length];
+      const pct = ((item.val / total) * 100).toFixed(1);
+
+      ctx.beginPath();
+      ctx.arc(lx + 5, ly + 9, 4, 0, Math.PI * 2);
+      ctx.fillStyle = color;
+      ctx.fill();
+
+      ctx.font = `500 10.5px ${FONT}`;
+      ctx.fillStyle = textColor;
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'middle';
+      const label = item.name.length > 14 ? item.name.slice(0, 12) + '…' : item.name;
+      ctx.fillText(label, lx + 13, ly + 9);
+
+      ctx.font = `600 10px ${FONT}`;
+      ctx.fillStyle = color;
+      ctx.textAlign = 'right';
+      ctx.fillText(pct + '%', W - PAD, ly + 9);
+    });
+
+    container.appendChild(canvas);
+  }
+
+  // ── Line chart renderer ─────────────────────────────────────────────────────
+  function renderLineChart(container, points, chartTitle, seedNote) {
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const FONT = `-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
+
+    const PAD_L  = 54;
+    const PAD_R  = 18;
+    const PAD_T  = chartTitle ? 30 : 12;
+    const PAD_B  = 28;
+    const W = 340;
+    const H = 160;
+    const chartW = W - PAD_L - PAD_R;
+    const chartH = H - PAD_T - PAD_B;
+
+    const canvas = document.createElement('canvas');
+    const ratio = window.devicePixelRatio || 1;
+    canvas.width  = W * ratio;
+    canvas.height = H * ratio;
+    canvas.style.width  = W + 'px';
+    canvas.style.height = H + 'px';
+    canvas.className = 'chat-chart-canvas';
+    const ctx = canvas.getContext('2d');
+    ctx.scale(ratio, ratio);
+
+    const textColor  = isDark ? '#94a3b8' : '#64748b';
+    const titleColor = isDark ? '#e2e6f0' : '#0f1523';
+    const gridColor  = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
+    const lineColor  = '#2563eb';
+    const dotColor   = '#2563eb';
+    const areaTop    = isDark ? 'rgba(37,99,235,0.25)' : 'rgba(37,99,235,0.12)';
+    const areaBot    = 'rgba(37,99,235,0)';
+
+    ctx.clearRect(0, 0, W, H);
+
+    if (chartTitle) {
+      ctx.font = `700 12px ${FONT}`;
+      ctx.fillStyle = titleColor;
+      ctx.textBaseline = 'middle';
+      ctx.textAlign = 'left';
+      ctx.fillText(chartTitle, PAD_L, PAD_T / 2);
+    }
+
+    const maxVal = Math.max(...points.map(p => p.val));
+    const minVal = Math.min(...points.map(p => p.val));
+    const range  = maxVal - minVal || 1;
+
+    const toX = (i) => PAD_L + (i / (points.length - 1)) * chartW;
+    const toY = (v) => PAD_T + chartH - ((v - minVal) / range) * chartH;
+
+    // Grid lines (3)
+    [0, 0.5, 1].forEach(t => {
+      const gv = minVal + t * range;
+      const gy = toY(gv);
+      ctx.beginPath();
+      ctx.moveTo(PAD_L, gy);
+      ctx.lineTo(PAD_L + chartW, gy);
+      ctx.strokeStyle = gridColor;
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      ctx.font = `500 9px ${FONT}`;
+      ctx.fillStyle = textColor;
+      ctx.textAlign = 'right';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(fmtDollar(Math.round(gv)), PAD_L - 4, gy);
+    });
+
+    // Area fill
+    const grad = ctx.createLinearGradient(0, PAD_T, 0, PAD_T + chartH);
+    grad.addColorStop(0, areaTop);
+    grad.addColorStop(1, areaBot);
+
+    ctx.beginPath();
+    ctx.moveTo(toX(0), toY(points[0].val));
+    points.forEach((p, i) => { if (i > 0) ctx.lineTo(toX(i), toY(p.val)); });
+    ctx.lineTo(toX(points.length - 1), PAD_T + chartH);
+    ctx.lineTo(toX(0), PAD_T + chartH);
+    ctx.closePath();
+    ctx.fillStyle = grad;
+    ctx.fill();
+
+    // Line
+    ctx.beginPath();
+    ctx.moveTo(toX(0), toY(points[0].val));
+    points.forEach((p, i) => { if (i > 0) ctx.lineTo(toX(i), toY(p.val)); });
+    ctx.strokeStyle = lineColor;
+    ctx.lineWidth = 2;
+    ctx.lineJoin = 'round';
+    ctx.stroke();
+
+    // Dots + x-axis labels
+    points.forEach((p, i) => {
+      const x = toX(i);
+      const y = toY(p.val);
+      ctx.beginPath();
+      ctx.arc(x, y, 3.5, 0, Math.PI * 2);
+      ctx.fillStyle = dotColor;
+      ctx.fill();
+      ctx.strokeStyle = isDark ? '#111623' : '#ffffff';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      ctx.font = `500 9px ${FONT}`;
+      ctx.fillStyle = textColor;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
+      const lbl = p.label.length > 5 ? p.label.slice(0, 4) + '…' : p.label;
+      ctx.fillText(lbl, x, PAD_T + chartH + 4);
     });
 
     container.appendChild(canvas);

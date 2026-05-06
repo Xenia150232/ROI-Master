@@ -37,12 +37,15 @@ A tool that lets you see growth across investments and asset classes with advanc
 - **Exclude rows** — temporarily remove assets from charts without deleting them
 - **CSV import** — upload your own CSV to replace the default dataset
 - **CSV export** — download the current filtered view as a CSV
-- **AI Chat Assistant — answers in words *and* draws its own charts live** — ask a question and the assistant responds in plain English, then automatically renders a real bar chart right inside the chat bubble whenever the answer contains ranked or comparable data. No button to press, no separate view — the chart appears as part of the reply, on the fly. [Jump to full AI Chat section →](#ai-chat-assistant)
-  - **Live in-chat chart generation** — Canvas-rendered horizontal bar chart injected directly into the message bubble for any ranked list, top-N result, or multi-asset comparison the AI produces
-  - **Comparison charts** — side-by-side bars when the answer contrasts two groups (e.g. Asia vs Europe returns across time horizons)
+- **AI Chat Assistant — answers in words *and* draws its own charts and tables live** — ask a question and the assistant responds in plain English, then automatically renders the most appropriate visualisation right inside the chat bubble. No button to press, no separate view — the chart or table appears as part of the reply, on the fly. [Jump to full AI Chat section →](#ai-chat-assistant)
+  - **Live in-chat bar charts** — Canvas-rendered horizontal bar chart injected directly into the message bubble for any ranked list, top-N result, or best-by-return query
+  - **Comparison charts** — side-by-side bars when the answer contrasts two groups (e.g. Stocks vs ETFs across time horizons)
+  - **Donut charts** — rendered automatically for category breakdowns, sector compositions, and percentage-split questions (e.g. "which asset class dominates the top performers?")
+  - **Line charts** — drawn for time-series data and single-asset return trajectories across all five horizons (1Y → 5Y → 10Y → 15Y → 20Y), showing the growth curve at a glance
+  - **In-chat data tables** — styled multi-column tables with colour-coded values (green for strong returns, red for underperformers) for questions that compare several metrics across multiple assets simultaneously
   - **Voice readout (Web Speech API)** — every AI reply is read aloud using the browser's built-in `SpeechSynthesis` API with a prioritised natural female voice (Samantha, Google UK English Female, Karen, and others). A speaker icon in the chat header lets users mute/unmute at any time; the preference is saved to `localStorage` between visits
   - Auto-suggested follow-up questions — 6 contextual pills after every response, derived from the specific assets and topics in the answer
-  - **Persistent chat history** - Saved to browser localStorage
+  - Persistent chat history - Saved to browser localStorage
     - Clever replies: AI Chatbot analyses past messages and uses reasoning to determine if the next response is related or not  
     - Chat History - Restored on return visits, with full chart replay (browser localStorage)
   - Full awareness of all 7 dashboard visualisations — ask "what does the scatter plot show?" and get a data-driven description
@@ -87,8 +90,12 @@ The built-in chat widget operates in two modes:
 ### Chat features
 
 - **Analyse with AI buttons** — every KPI tile and every data visualisation has a hover-triggered **Analyse with AI** button. One click fires a contextual, pre-built question into the chat — no typing required. The question automatically incorporates the active section, selected time horizon, and current data state
-- **Live in-chat charts** — whenever the AI's response contains a ranked list, top-N comparison, or side-by-side group breakdown, a Canvas-rendered horizontal bar chart is drawn automatically inside the message bubble — no button, no modal, no separate tab
-- **Comparison charts** — when the AI contrasts two groups (e.g. Asia vs Europe across time horizons), the chart interleaves bars from both sides so the comparison is instantly visual
+- **Live in-chat visualisations** — whenever the AI responds, it automatically selects and renders the most appropriate visualisation type directly inside the message bubble — no button, no modal, no separate tab:
+  - **Ranked bar chart** — for top-N lists, best/worst performers, and any ordered ranking
+  - **Comparison (grouped) bar chart** — interleaved bars for two-group contrasts (e.g. Stocks vs ETFs across time horizons)
+  - **Donut chart** — for category/sector breakdowns and percentage-split questions, with a legend showing each slice's share
+  - **Line chart** — for time-series and single-asset horizon trajectories (1Y → 5Y → 10Y → 15Y → 20Y), with area fill and grid lines
+  - **Data table** — styled multi-column table with alternating row shading and colour-coded values (green for high returns, red for underperformers) for questions spanning multiple metrics across several assets
 - **Voice readout (Web Speech API)** — each bot reply is spoken aloud via the browser's native `SpeechSynthesis` API. The voice picker prioritises natural, warm female voices (Samantha, Google UK English Female, Karen, etc.). A speaker icon in the chat header lets users mute/unmute; preference persists via `localStorage`
 - **Dynamic follow-up pills** — after every AI response, 6 contextual follow-up questions appear as clickable pills derived from the specific assets, categories, and time horizons mentioned in the reply. These are generated dynamically from the conversation context — not a fixed list. Each response produces different pills tailored to what was just discussed (e.g. after asking about tech stocks you might see pills for semiconductors, AI ETFs, or 10-year comparisons). The opening quick-question pills are also randomised on each visit from a pool of 35+ investment topics
 

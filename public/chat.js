@@ -1544,35 +1544,31 @@
       const found = {};
 
       const scanForHorizons = (src) => {
+        // Use LARGEST value per horizon to avoid picking up seed capital
+        const setIfLarger = (key, val) => {
+          if (horizonOrder.includes(key) && val > 0) {
+            if (!found[key] || val > found[key]) found[key] = val;
+          }
+        };
         let m;
-        // Pattern: $X at/over Nyr
-        const re1 = /\$\s*([\d,]+)\s+(?:at|over|by|for|in)\s+(\d+)\s*[-–]?\s*(?:yr|year)/gi;
-        while ((m = re1.exec(src)) !== null) {
-          const val = parseFloat(m[1].replace(/,/g, ''));
-          const key = m[2] + 'yr';
-          if (horizonOrder.includes(key) && val > 0 && !found[key]) found[key] = val;
-        }
-        // Pattern: $X (Nx) over Nyr — e.g. "$32,000 (32x) over 20yr"
-        const re2 = /\$\s*([\d,]+)\s*\([^)]+\)\s+(?:at|over|by|for|in)\s+(\d+)\s*[-–]?\s*(?:yr|year)/gi;
-        while ((m = re2.exec(src)) !== null) {
-          const val = parseFloat(m[1].replace(/,/g, ''));
-          const key = m[2] + 'yr';
-          if (horizonOrder.includes(key) && val > 0 && !found[key]) found[key] = val;
-        }
-        // Pattern: Nyr: $X  or  N-year: $X
+        // re0: returned/grew $RESULT from $SEED over Nyr — explicit result
+        const re0 = /(?:returned?|grew)\s+\$\s*([\d,]+)\s+from\s+\$[\d,]+\s+over\s+(\d+)\s*(?:yr|year)/gi;
+        while ((m = re0.exec(src)) !== null) setIfLarger(m[2] + 'yr', parseFloat(m[1].replace(/,/g, '')));
+        // re5: N-year return reached/hit $X — year before value
+        const re5 = /\b(\d+)[-\s](?:yr|year)\w*\s+(?:return\w*\s+)?(?:reached?|hit|was|is|grew?\s+to|surged?\s+to|compounded?\s+to|returned?)\s+\$\s*([\d,]+)/gi;
+        while ((m = re5.exec(src)) !== null) setIfLarger(m[1] + 'yr', parseFloat(m[2].replace(/,/g, '')));
+        // re7: over N years ... turned $X into $Y  — year-first "turned into" pattern
+        const re7 = /(?:over|in|after)\s+(\d+)\s*(?:yr|year)[^.\n]{0,60}?turned?\s+\$[\d,]+\s+into\s+\$\s*([\d,]+)/gi;
+        while ((m = re7.exec(src)) !== null) setIfLarger(m[1] + 'yr', parseFloat(m[2].replace(/,/g, '')));
+        // re6: turned $X into $Y over N years — value-first "turned into" pattern
+        const re6 = /turned?\s+\$[\d,]+\s+into\s+\$\s*([\d,]+)[^.\n]{0,40}?(?:over|in|at|after)\s+(\d+)\s*(?:yr|year)/gi;
+        while ((m = re6.exec(src)) !== null) setIfLarger(m[2] + 'yr', parseFloat(m[1].replace(/,/g, '')));
+        // re3: Nyr: $X or N-year: $X
         const re3 = /\b(\d+)\s*[-–]?\s*(?:yr|year)s?[\s:,]+\$\s*([\d,]+)/gi;
-        while ((m = re3.exec(src)) !== null) {
-          const key = m[1] + 'yr';
-          const val = parseFloat(m[2].replace(/,/g, ''));
-          if (horizonOrder.includes(key) && val > 0 && !found[key]) found[key] = val;
-        }
-        // Pattern: grew/returned to $X at/over Nyr
-        const re4 = /(?:grew(?:\s+from\s+\$[\d,]+)?\s+to|reached|returned?|hit|surged?\s+to|compounded?\s+to)\s+\$\s*([\d,]+)[^.,\n()]{0,30}?(?:at|over|after|in)\s+(\d+)\s*[-–]?\s*(?:yr|year)/gi;
-        while ((m = re4.exec(src)) !== null) {
-          const val = parseFloat(m[1].replace(/,/g, ''));
-          const key = m[2] + 'yr';
-          if (horizonOrder.includes(key) && val > 0 && !found[key]) found[key] = val;
-        }
+        while ((m = re3.exec(src)) !== null) setIfLarger(m[1] + 'yr', parseFloat(m[2].replace(/,/g, '')));
+        // re1 last (highest precision) — $X over/at Nyr, always overwrites with larger
+        const re1 = /\$\s*([\d,]+)\s*(?:\([^)]+\))?\s*(?:at|over|by|for|in)\s+(\d+)\s*[-–]?\s*(?:yr|year)/gi;
+        while ((m = re1.exec(src)) !== null) setIfLarger(m[2] + 'yr', parseFloat(m[1].replace(/,/g, '')));
       };
 
       scanForHorizons(text);

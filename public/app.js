@@ -652,14 +652,13 @@ function renderTable(){
     const sel=selectedNames.includes(r.name);
     const excl=excludedNames.has(r.name);
     const nameEsc=r.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-    const aiPromptRow=buildAssetRowAiPrompt(r);
-    const aiPromptEsc=aiPromptRow.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+    const aiKey=_storePrompt(buildAssetRowAiPrompt(r));
     return `<tr class="${sel&&!excl?'row-selected':''} ${excl?'row-excluded':''}" onclick="rowClick(event,'${nameEsc}')">
       <td><input type="checkbox" ${sel&&!excl?'checked':''} ${excl?'disabled':''} onclick="toggleSel(event,'${nameEsc}')"></td>
       <td>
         <div style="display:flex;align-items:center;gap:6px">
           <div style="flex:1;min-width:0"><div class="asset-name">${r.name}</div><div class="cat-tag">${r.category}</div></div>
-          <button class="row-ai-btn" onclick="event.stopPropagation();tableRowAiClick('${aiPromptEsc}')" title="Analyse with AI"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>AI</button>
+          <button class="row-ai-btn" onclick="tableRowAiClick(event,${aiKey})" title="Analyse with AI"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>AI</button>
           <button class="exclude-btn ${excl?'excluded':''}" onclick="toggleExclude(event,'${nameEsc}')" title="${excl?'Re-include this asset':'Exclude from calculations'}">${excl?includeIcon:excludeIcon}</button>
         </div>
       </td>
@@ -1069,7 +1068,7 @@ function renderCompareStats(selected){
     if(c20!=null) scParts.push(`20Y CAGR: ${c20}%.`);
     if(scorePct!=null) scParts.push(`Overall score vs peers: ${scorePct}%.`);
     scParts.push('Explain the key drivers, risk profile, and whether this asset deserves its ranking.');
-    const scPrompt=scParts.join(' ').replace(/'/g,"\\'");
+    const scKey=_storePrompt(scParts.join(' '));
 
     html+=`<div class="cs-card">
       <div class="cs-card-head">
@@ -1098,7 +1097,7 @@ function renderCompareStats(selected){
         ${scorePct!=null?`<span class="growth-badge ${scoreCls}" style="font-size:10px;margin-left:auto">${scorePct}% score</span>`:''}
       </div>
       <div class="cs-card-ai-footer">
-        <button class="cs-card-ai-btn" onclick="scorecardAiClick('${scPrompt}')"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>Analyse with AI</button>
+        <button class="cs-card-ai-btn" onclick="scorecardAiClick(${scKey})"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>Analyse with AI</button>
       </div>
     </div>`;
   });
@@ -1766,6 +1765,11 @@ function kpiAiClick(btn){
   if(prompt && window.openChatWithPrompt) window.openChatWithPrompt(prompt, prompt);
 }
 
+// Prompt cache: keyed by numeric index so onclick attrs never embed raw strings
+const _aiPromptCache = {};
+let _aiPromptIdx = 0;
+function _storePrompt(text){ const k=_aiPromptIdx++; _aiPromptCache[k]=text; return k; }
+
 function buildAssetRowAiPrompt(r){
   const parts=[];
   parts.push(`Analyse the investment asset "${r.name}" (${r.category}, ${r.section}).`);
@@ -1778,11 +1782,14 @@ function buildAssetRowAiPrompt(r){
   return parts.join(' ');
 }
 
-function tableRowAiClick(prompt){
+function tableRowAiClick(e,k){
+  e.stopPropagation();
+  const prompt=_aiPromptCache[k];
   if(prompt && window.openChatWithPrompt) window.openChatWithPrompt(prompt, prompt);
 }
 
-function scorecardAiClick(prompt){
+function scorecardAiClick(k){
+  const prompt=_aiPromptCache[k];
   if(prompt && window.openChatWithPrompt) window.openChatWithPrompt(prompt, prompt);
 }
 

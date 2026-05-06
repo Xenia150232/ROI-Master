@@ -1489,6 +1489,12 @@
           }
           const validSeries = series.filter(s => s.points.length >= 2);
           if (validSeries.length >= 1) return { type: 'line', series: validSeries };
+          // Single-point series — show as ranked bar (each series name + its value)
+          const singleItems = series.filter(s => s.points.length === 1).map(s => ({
+            name: s.name || s.points[0].label,
+            val: s.points[0].val
+          }));
+          if (singleItems.length >= 1) return { type: 'ranked', items: singleItems };
         }
 
         // Legacy single-series format: numbered/bulleted lines
@@ -1506,6 +1512,7 @@
           points.push({ label: name, val });
         }
         if (points.length >= 2) return { type: 'line', series: [{ name: null, points }] };
+        if (points.length === 1) return { type: 'ranked', items: [{ name: points[0].label, val: points[0].val }] };
         return null;
       }
 
@@ -1544,31 +1551,35 @@
       const found = {};
 
       const scanForHorizons = (src) => {
-        // Use LARGEST value per horizon to avoid picking up seed capital
-        const setIfLarger = (key, val) => {
-          if (horizonOrder.includes(key) && val > 0) {
-            if (!found[key] || val > found[key]) found[key] = val;
-          }
+        // Always keep LARGEST value per horizon to avoid keeping seed capital ($1,000)
+        const set = (key, val) => {
+          if (horizonOrder.includes(key) && val > 0 && (!found[key] || val > found[key])) found[key] = val;
         };
         let m;
-        // re0: returned/grew $RESULT from $SEED over Nyr — explicit result
-        const re0 = /(?:returned?|grew)\s+\$\s*([\d,]+)\s+from\s+\$[\d,]+\s+over\s+(\d+)\s*(?:yr|year)/gi;
-        while ((m = re0.exec(src)) !== null) setIfLarger(m[2] + 'yr', parseFloat(m[1].replace(/,/g, '')));
-        // re5: N-year return reached/hit $X — year before value
-        const re5 = /\b(\d+)[-\s](?:yr|year)\w*\s+(?:return\w*\s+)?(?:reached?|hit|was|is|grew?\s+to|surged?\s+to|compounded?\s+to|returned?)\s+\$\s*([\d,]+)/gi;
-        while ((m = re5.exec(src)) !== null) setIfLarger(m[1] + 'yr', parseFloat(m[2].replace(/,/g, '')));
-        // re7: over N years ... turned $X into $Y  — year-first "turned into" pattern
-        const re7 = /(?:over|in|after)\s+(\d+)\s*(?:yr|year)[^.\n]{0,60}?turned?\s+\$[\d,]+\s+into\s+\$\s*([\d,]+)/gi;
-        while ((m = re7.exec(src)) !== null) setIfLarger(m[1] + 'yr', parseFloat(m[2].replace(/,/g, '')));
-        // re6: turned $X into $Y over N years — value-first "turned into" pattern
+        // "returned/grew $X from a $Y investment over N years"
+        const re0 = /(?:returned?|grew)\s+\$\s*([\d,]+)\s+from\s+(?:a\s+)?\$[\d,]+[^.\n]{0,20}?over\s+(\d+)\s*(?:yr|year)/gi;
+        while ((m = re0.exec(src)) !== null) set(m[2]+'yr', parseFloat(m[1].replace(/,/g,'')));
+        // "turned $X into $Y over N years" (value-first)
         const re6 = /turned?\s+\$[\d,]+\s+into\s+\$\s*([\d,]+)[^.\n]{0,40}?(?:over|in|at|after)\s+(\d+)\s*(?:yr|year)/gi;
-        while ((m = re6.exec(src)) !== null) setIfLarger(m[2] + 'yr', parseFloat(m[1].replace(/,/g, '')));
-        // re3: Nyr: $X or N-year: $X
+        while ((m = re6.exec(src)) !== null) set(m[2]+'yr', parseFloat(m[1].replace(/,/g,'')));
+        // "over N years ... turned $X into $Y" (year-first)
+        const re7 = /(?:over|in|after)\s+(\d+)\s*(?:yr|year)[^.\n]{0,60}?turned?\s+\$[\d,]+\s+into\s+\$\s*([\d,]+)/gi;
+        while ((m = re7.exec(text)) !== null) set(m[1]+'yr', parseFloat(m[2].replace(/,/g,'')));
+        // "Nyr ($X)" or "at 10yr ($3,500)" — value in parens after horizon
+        const re8 = /\b(\d+)\s*[-–]?\s*(?:yr|year)s?\s*\(\s*\$\s*([\d,]+)\s*\)/gi;
+        while ((m = re8.exec(src)) !== null) set(m[1]+'yr', parseFloat(m[2].replace(/,/g,'')));
+        // "by 10yr" / "at 10yr" / "surged to $X by 10yr"
+        const re9 = /\$\s*([\d,]+)\s+(?:by|at)\s+(\d+)\s*[-–]?\s*(?:yr|year)/gi;
+        while ((m = re9.exec(src)) !== null) set(m[2]+'yr', parseFloat(m[1].replace(/,/g,'')));
+        // "N-year return reached/hit $X"
+        const re5 = /\b(\d+)[-\s](?:yr|year)\w*\s+(?:return\w*\s+)?(?:reached?|hit|was|is|grew?\s+to|surged?\s+to|compounded?\s+to|returned?)\s+\$\s*([\d,]+)/gi;
+        while ((m = re5.exec(src)) !== null) set(m[1]+'yr', parseFloat(m[2].replace(/,/g,'')));
+        // "Nyr: $X" or "N-year: $X"
         const re3 = /\b(\d+)\s*[-–]?\s*(?:yr|year)s?[\s:,]+\$\s*([\d,]+)/gi;
-        while ((m = re3.exec(src)) !== null) setIfLarger(m[1] + 'yr', parseFloat(m[2].replace(/,/g, '')));
-        // re1 last (highest precision) — $X over/at Nyr, always overwrites with larger
-        const re1 = /\$\s*([\d,]+)\s*(?:\([^)]+\))?\s*(?:at|over|by|for|in)\s+(\d+)\s*[-–]?\s*(?:yr|year)/gi;
-        while ((m = re1.exec(src)) !== null) setIfLarger(m[2] + 'yr', parseFloat(m[1].replace(/,/g, '')));
+        while ((m = re3.exec(src)) !== null) set(m[1]+'yr', parseFloat(m[2].replace(/,/g,'')));
+        // "$X over/at/in Nyr" — most common, run last so it wins ties
+        const re1 = /\$\s*([\d,]+)\s*(?:\([^)]*\))?\s*(?:at|over|by|for|in)\s+(\d+)\s*[-–]?\s*(?:yr|year)/gi;
+        while ((m = re1.exec(src)) !== null) set(m[2]+'yr', parseFloat(m[1].replace(/,/g,'')));
       };
 
       scanForHorizons(text);
@@ -1603,8 +1614,13 @@
       const line = raw.trim();
       if (!line) continue;
       if (!/^\d+[\.\)]\s+/.test(line) && !/^[-•]\s+/.test(line)) continue;
-      const val = extractValue(line);
-      if (val < 100) continue;
+      // Accept dollar values OR plain counts like "150 assets" / "(30)"
+      let val = extractValue(line);
+      if (!val || val < 5) {
+        const countMatch = line.match(/\b(\d+)\s*(?:assets?|stocks?|funds?|items?|entries|bonds?|holdings?)?\b/i);
+        if (countMatch) val = parseInt(countMatch[1], 10);
+      }
+      if (!val || val < 5) continue;
       const name = extractProseName(line);
       if (!name || name.length < 3) continue;
       if (PROSE_STOP.test(name)) continue;
@@ -1923,6 +1939,7 @@
 
   // ── Ranked (single-series) chart ─────────────────────────────────────────
   function renderRankedChart(container, items, chartTitle, seedNote) {
+    if (!items || !items.length) return;
     const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
     const BAR_H   = 22;
     const GAP     = 8;

@@ -42,7 +42,7 @@ A tool that lets you see growth across investments and asset classes with advanc
   - **Comparison charts** — side-by-side bars when the answer contrasts two groups (e.g. Asia vs Europe returns across time horizons)
   - **Voice readout (Web Speech API)** — every AI reply is read aloud using the browser's built-in `SpeechSynthesis` API with a prioritised natural female voice (Samantha, Google UK English Female, Karen, and others). A speaker icon in the chat header lets users mute/unmute at any time; the preference is saved to `localStorage` between visits
   - Auto-suggested follow-up questions — 6 contextual pills after every response, derived from the specific assets and topics in the answer
-  - Persistent chat history - Saved to browser localStorage
+  - **Persistent chat history** - Saved to browser localStorage
     - Clever replies: AI Chatbot analyses past messages and uses reasoning to determine if the next response is related or not  
     - Chat History - Restored on return visits, with full chart replay (browser localStorage)
   - Full awareness of all 7 dashboard visualisations — ask "what does the scatter plot show?" and get a data-driven description

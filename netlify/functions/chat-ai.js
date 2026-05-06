@@ -242,29 +242,31 @@ RESPONSE FORMAT — strict, no exceptions:
 - One optional heading line max (e.g. "**Top 10yr:**"). Skip it if obvious.
 - If a question has a one-line answer, give one line — do NOT pad to fill bullets.
 - Every bullet must add new information. Never restate another bullet in different words.
-CHART DATA RULE — MANDATORY in EVERY single reply, no exceptions whatsoever:
-You MUST end EVERY response with a blank line followed by a CHART DATA block.
-This is non-negotiable. Even for conceptual questions, even for yes/no answers — you MUST produce one.
-If the question doesn't naturally yield a ranking, use TYPE:ranked with top 5 assets by 10yr return.
+CHART DATA RULE — MANDATORY IN EVERY SINGLE REPLY WITHOUT EXCEPTION:
+You MUST end EVERY response with a blank line then a CHART DATA block. No exceptions. Not even for simple yes/no answers. Not even for conceptual questions.
 
-CHOOSE THE RIGHT TYPE — this is critical:
+STEP 1 — DECIDE WHICH TYPE to use (choose the MOST specific match, not TYPE:ranked as default):
 
-TYPE:ranked  → use when answering: best/top/worst performers, any ranked list of assets or categories
-TYPE:grouped → use when answering: X vs Y, comparing two groups side-by-side across multiple rows
-TYPE:donut   → use when answering: breakdown by category/sector, portfolio composition, percentage splits, "how much of" questions
-TYPE:line    → use when answering: single asset growth over time, trajectory across 1yr/5yr/10yr/15yr/20yr horizons
-TYPE:table   → use when answering: multiple metrics for multiple assets simultaneously (3+ columns)
+• Asked about a SINGLE ASSET's returns over time? → TYPE:line
+  (e.g. "how has Apple done?", "show me Bitcoin's growth", "gold over 20 years")
+• Asked to COMPARE two groups/assets across horizons? → TYPE:grouped
+  (e.g. "stocks vs bonds", "ETFs vs real estate", "compare X and Y")
+• Asked about CATEGORY/SECTOR breakdown or composition? → TYPE:donut
+  (e.g. "which sector dominates?", "asset class breakdown", "what % is real estate?")
+• Asked for MULTIPLE METRICS across several assets? → TYPE:table
+  (e.g. "show me top 5 with all horizons", "table of best performers", "all returns for X Y Z")
+• Asked for a RANKING (best/top/worst) or ANY OTHER question? → TYPE:ranked
+  (this is the fallback only — prefer the above types when they fit)
 
-EXACT FORMAT FOR EACH TYPE — copy exactly, no deviations:
+STEP 2 — FORMAT exactly as shown:
 
-TYPE:ranked or TYPE:donut (numbered list with dollar or numeric value after —):
+TYPE:ranked — numbered list, name then dollar value:
 CHART DATA:
 TYPE:ranked
-1. Name — $X,XXX
-2. Name — $X,XXX
-3. Name — $X,XXX
+1. Asset Name — $X,XXX
+2. Asset Name — $X,XXX
 
-TYPE:line (chronological horizons, dollar values):
+TYPE:line — chronological time points, asset name then dollar value (always chronological: 1yr first):
 CHART DATA:
 TYPE:line
 1. 1yr — $X,XXX
@@ -273,24 +275,30 @@ TYPE:line
 4. 15yr — $X,XXX
 5. 20yr — $X,XXX
 
-TYPE:grouped (pipe-separated, HEADERS row names the two groups):
+TYPE:donut — numbered list, category name then dollar or numeric value:
+CHART DATA:
+TYPE:donut
+1. Category Name — $X,XXX
+2. Category Name — $X,XXX
+
+TYPE:grouped — pipe-separated rows, HEADERS names the two groups being compared:
 CHART DATA:
 TYPE:grouped
-HEADERS: Horizon | GroupA Name | GroupB Name
+HEADERS: Horizon | Group A Name | Group B Name
 1yr | $X,XXX | $X,XXX
 5yr | $X,XXX | $X,XXX
 10yr | $X,XXX | $X,XXX
 
-TYPE:table (pipe-separated, HEADERS row required):
+TYPE:table — pipe-separated rows with HEADERS row required:
 CHART DATA:
 TYPE:table
 HEADERS: Asset | 1yr | 5yr | 10yr
 Asset Name | $X,XXX | $X,XXX | $X,XXX
 Asset Name | $X,XXX | $X,XXX | $X,XXX
 
-RULES:
+FORMATTING RULES (non-negotiable):
 - 3 to 8 rows/items only
-- Dollar values: exact integers, no ~, no k/M suffixes, no "approx"
+- Dollar values: exact integers only, no ~, no k/M suffixes, no "approx"
 - No bold (**) markers anywhere inside the CHART DATA block
 - NEVER omit the CHART DATA block. A reply without it is an error.`;
 

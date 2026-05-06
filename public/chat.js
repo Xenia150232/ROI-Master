@@ -1080,16 +1080,21 @@
     return out.trim();
   }
 
+  function freeTextChartBlock(type, rows) {
+    return `\n\nCHART DATA:\nTYPE:${type}\n${rows.join('\n')}`;
+  }
+
   function best10yr(assets, yr = 10) {
     const key = `v${yr}`;
     const seed = (typeof window.seedMultiplier !== 'undefined') ? 1000 * window.seedMultiplier : 1000;
     const sorted = assets
       .filter(a => a[key] && !isNaN(a[key]))
       .sort((a, b) => b[key] - a[key])
-      .slice(0, 5);
+      .slice(0, 7);
     if (!sorted.length) return `No ${yr}-year data available.`;
-    const lines = sorted.map((a, i) => `${i + 1}. **${a.name}** — ${fmt(a[key])} (${fmtX(a[key] / seed)})`);
-    return `Top 5 assets by ${yr}-year return:\n${lines.join('\n')}`;
+    const prose = sorted.map((a, i) => `${i + 1}. **${a.name}** — ${fmt(a[key])} (${fmtX(a[key] / seed)})`);
+    const chart = sorted.map((a, i) => `${i + 1}. ${a.name} — ${fmt(a[key])}`);
+    return `Top assets by ${yr}-year return:\n${prose.join('\n')}` + freeTextChartBlock('ranked', chart);
   }
 
   function bestROI(assets) {
@@ -1098,9 +1103,10 @@
       let best = 0, bestYr = 0;
       yrs.forEach(y => { const v = a['v' + y]; if (v && !isNaN(v) && v > best) { best = v; bestYr = y; } });
       return { ...a, _best: best, _bestYr: bestYr };
-    }).filter(a => a._best > 0).sort((a, b) => b._best - a._best).slice(0, 5);
-    const lines = scored.map((a, i) => `${i + 1}. **${a.name}** — ${fmt(a._best)} over ${a._bestYr}yr`);
-    return `Top 5 overall ROI performers:\n${lines.join('\n')}`;
+    }).filter(a => a._best > 0).sort((a, b) => b._best - a._best).slice(0, 7);
+    const prose = scored.map((a, i) => `${i + 1}. **${a.name}** — ${fmt(a._best)} over ${a._bestYr}yr`);
+    const chart = scored.map((a, i) => `${i + 1}. ${a.name} — ${fmt(a._best)}`);
+    return `Top overall ROI performers:\n${prose.join('\n')}` + freeTextChartBlock('ranked', chart);
   }
 
   function topClass(assets) {
@@ -1116,30 +1122,35 @@
       .map(([cls, d]) => ({ cls, avg: d.sum / d.count, count: d.count }))
       .sort((a, b) => b.avg - a.avg);
     if (!sorted.length) return 'Could not compute asset class averages.';
-    const lines = sorted.slice(0, 4).map((c, i) => `${i + 1}. **${c.cls}** — avg ${fmt(c.avg)} (${c.count} assets)`);
-    return `Asset classes ranked by average 10-year return:\n${lines.join('\n')}`;
+    const top = sorted.slice(0, 5);
+    const prose = top.map((c, i) => `${i + 1}. **${c.cls}** — avg ${fmt(c.avg)} (${c.count} assets)`);
+    const chart = top.map((c, i) => `${i + 1}. ${c.cls} — ${fmt(c.avg)}`);
+    return `Asset classes ranked by average 10-year return:\n${prose.join('\n')}` + freeTextChartBlock('donut', chart);
   }
 
   function worstPerformers(assets) {
     const sorted = assets
       .filter(a => a.v10 && !isNaN(a.v10))
       .sort((a, b) => a.v10 - b.v10)
-      .slice(0, 5);
+      .slice(0, 7);
     if (!sorted.length) return 'No 10-year data found.';
-    const lines = sorted.map((a, i) => `${i + 1}. **${a.name}** — ${fmt(a.v10)} over 10yr`);
-    return `Bottom 5 performers by 10-year return:\n${lines.join('\n')}`;
+    const prose = sorted.map((a, i) => `${i + 1}. **${a.name}** — ${fmt(a.v10)} over 10yr`);
+    const chart = sorted.map((a, i) => `${i + 1}. ${a.name} — ${fmt(a.v10)}`);
+    return `Bottom performers by 10-year return:\n${prose.join('\n')}` + freeTextChartBlock('ranked', chart);
   }
 
   function avgReturns(assets) {
     const yrs = [1, 5, 10, 15, 20];
-    const lines = yrs.map(y => {
+    const points = yrs.map(y => {
       const vals = assets.map(a => a['v' + y]).filter(v => v && !isNaN(v));
       if (!vals.length) return null;
-      const avg = vals.reduce((s, v) => s + Number(v), 0) / vals.length;
-      const med = median(vals.map(Number));
-      return `**${y}yr** — avg ${fmt(avg)}, median ${fmt(med)} (${vals.length} assets)`;
+      const avg = Math.round(vals.reduce((s, v) => s + Number(v), 0) / vals.length);
+      const med = Math.round(median(vals.map(Number)));
+      return { y, avg, med, count: vals.length };
     }).filter(Boolean);
-    return `Average returns across the dataset:\n${lines.join('\n')}`;
+    const prose = points.map(d => `**${d.y}yr** — avg ${fmt(d.avg)}, median ${fmt(d.med)} (${d.count} assets)`);
+    const chart = points.map((d, i) => `${i + 1}. ${d.y}yr — ${fmt(d.avg)}`);
+    return `Average returns across the dataset:\n${prose.join('\n')}` + freeTextChartBlock('line', chart);
   }
 
   function mostConsistent(assets) {
@@ -1151,20 +1162,21 @@
       const variance = vals.reduce((s, v) => s + (v - mean) ** 2, 0) / vals.length;
       const cv = Math.sqrt(variance) / mean;
       return { ...a, _cv: cv, _mean: mean };
-    }).filter(Boolean).sort((a, b) => a._cv - b._cv).slice(0, 5);
+    }).filter(Boolean).sort((a, b) => a._cv - b._cv).slice(0, 7);
     if (!scored.length) return 'Not enough multi-year data to determine consistency.';
-    const lines = scored.map((a, i) => `${i + 1}. **${a.name}** — avg ${fmt(a._mean)} with low variance`);
-    return `Most consistent performers (low return volatility):\n${lines.join('\n')}`;
+    const prose = scored.map((a, i) => `${i + 1}. **${a.name}** — avg ${fmt(a._mean)} with low variance`);
+    const chart = scored.map((a, i) => `${i + 1}. ${a.name} — ${fmt(a._mean)}`);
+    return `Most consistent performers (low return volatility):\n${prose.join('\n')}` + freeTextChartBlock('ranked', chart);
   }
 
   function assetDetail(a) {
     const yrs = [1, 5, 10, 15, 20];
-    const lines = yrs.map(y => {
-      const v = a['v' + y];
-      return v && !isNaN(v) ? `**${y}yr:** ${fmt(v)}` : null;
-    }).filter(Boolean);
+    const vals = yrs.map(y => ({ y, v: a['v' + y] })).filter(d => d.v && !isNaN(d.v));
+    const prose = vals.map(d => `**${d.y}yr:** ${fmt(d.v)}`);
+    const chart = vals.map((d, i) => `${i + 1}. ${d.y}yr — ${fmt(d.v)}`);
     const cls = a.section || a.category || a.cat || 'Unknown';
-    return `**${a.name}** (${cls})\n${lines.length ? lines.join(' · ') : 'No return data available.'}`;
+    const base = `**${a.name}** (${cls})\n${prose.length ? prose.join(' · ') : 'No return data available.'}`;
+    return base + (chart.length >= 2 ? freeTextChartBlock('line', chart) : '');
   }
 
   function assetPerformanceSummary(a) {
@@ -1184,7 +1196,9 @@
     else if (best.v > seed * 3) verdict = `Moderate performer — **${multiplier}x** return over ${best.y} years.`;
     else verdict = `Low performer relative to the dataset — only **${multiplier}x** over ${best.y} years.`;
 
-    return `**${a.name}** (${cls})\n${returnLines}\n\n${verdict}`;
+    const chart = vals.map((d, i) => `${i + 1}. ${d.y}yr — ${fmt(d.v)}`);
+    return `**${a.name}** (${cls})\n${returnLines}\n\n${verdict}` +
+      (chart.length >= 2 ? freeTextChartBlock('line', chart) : '');
   }
 
   function bestInClass(assets, cls) {
@@ -1192,10 +1206,11 @@
       (a.section || a.category || a.cat || '').toLowerCase() === cls.toLowerCase()
     );
     if (!filtered.length) return `No assets found in the **${cls}** category.`;
-    const sorted = filtered.filter(a => a.v10 && !isNaN(a.v10)).sort((a, b) => b.v10 - a.v10).slice(0, 5);
+    const sorted = filtered.filter(a => a.v10 && !isNaN(a.v10)).sort((a, b) => b.v10 - a.v10).slice(0, 7);
     if (!sorted.length) return `No 10-year data available for **${cls}** assets.`;
-    const lines = sorted.map((a, i) => `${i + 1}. **${a.name}** — ${fmt(a.v10)} (10yr)`);
-    return `Top performers in **${cls}**:\n${lines.join('\n')}`;
+    const prose = sorted.map((a, i) => `${i + 1}. **${a.name}** — ${fmt(a.v10)} (10yr)`);
+    const chart = sorted.map((a, i) => `${i + 1}. ${a.name} — ${fmt(a.v10)}`);
+    return `Top performers in **${cls}**:\n${prose.join('\n')}` + freeTextChartBlock('ranked', chart);
   }
 
   function median(arr) {
@@ -1306,7 +1321,7 @@
     return { clean, chartSection };
   }
 
-  function extractChartData(text) {
+  function extractChartData(text, questionHint) {
     // Helper: extract the largest dollar value anywhere in a string
     function extractValue(str) {
       const matches = [...str.matchAll(/~?\$\s*([\d,]+(?:\.\d+)?)\s*([kKmMbB]?)/g)];
@@ -1341,6 +1356,30 @@
       if (typeMatch) {
         vizType = typeMatch[1].toLowerCase();
         dataLines = sectionLines.slice(1);
+      }
+
+      // ── Client-side type override ──────────────────────────────────────────
+      // If the AI picked TYPE:ranked but we can infer a better type from the
+      // question text or the data shape, upgrade it here.
+      if (vizType === 'ranked') {
+        const q = (questionHint || '').toLowerCase();
+        const hasTimeSeries = dataLines.filter(l => /^\d+[\.\)]/.test(l))
+          .every(l => /\b(1y|5y|10y|15y|20y|1yr|5yr|10yr|15yr|20yr)\b/i.test(l));
+        const hasPipeRows = dataLines.filter(l => !(/^HEADERS?:/i.test(l)) && l.includes('|')).length >= 2;
+        const isCategoryQ = /\b(category|categor|sector|class|breakdown|composition|split|proportion|share|allocation|portfolio|pie|which (type|kind|class))\b/i.test(q);
+        const isTimeQ = /\b(over time|trajectory|growth|across (horizon|year|time|period)|each (year|horizon)|time.series)\b/i.test(q);
+        const isSingleAsset = /\b(how (did|has|is)|growth of|trajectory of|show me|detail|history)\b/i.test(q) && dataLines.filter(l => /^\d+[\.\)]/.test(l)).length <= 6;
+        const isCompareQ = /\b(compar|versus|vs\.?|vs |against|side.by.side|both|all (assets|of them))\b/i.test(q);
+
+        if (hasPipeRows) {
+          vizType = isCompareQ ? 'grouped' : 'table';
+        } else if (hasTimeSeries && dataLines.filter(l => /^\d+[\.\)]/.test(l)).length >= 2) {
+          vizType = 'line';
+        } else if (isCategoryQ) {
+          vizType = 'donut';
+        } else if ((isTimeQ || isSingleAsset) && dataLines.filter(l => /^\d+[\.\)]/.test(l)).length >= 2) {
+          vizType = 'line';
+        }
       }
 
       // ── GROUPED (comparison) viz ───────────────────────────────
@@ -2215,10 +2254,26 @@
     textEl.innerHTML = formatBotText(text);
 
     // Attempt to draw an inline chart — use rawText so CHART DATA: section is available
-    const chartData = extractChartData(rawText);
+    let chartData = extractChartData(rawText, lastUserQuestion);
+
+    // Guaranteed fallback: if parsing produced nothing, generate a ranked chart
+    // from the top assets by 10-year return so every reply always has a visualisation
+    if (!chartData) {
+      const fallbackAssets = getAssets();
+      if (fallbackAssets && fallbackAssets.length >= 2) {
+        const top = fallbackAssets
+          .filter(a => a.v10 && !isNaN(a.v10))
+          .sort((a, b) => b.v10 - a.v10)
+          .slice(0, 7);
+        if (top.length >= 2) {
+          chartData = { type: 'ranked', items: top.map(a => ({ name: a.name, val: Number(a.v10) })) };
+        }
+      }
+    }
+
     if (chartData) {
-      const titleMatch = (lastUserQuestion + ' ' + text).match(/top \d+|best \d+|worst \d+|ranked|comparison|compare|heatmap|categor|class|analys/i);
-      const chartTitle = titleMatch ? titleMatch[0].replace(/\b\w/g, c => c.toUpperCase()) : 'Return Comparison';
+      const titleMatch = (lastUserQuestion + ' ' + text).match(/top \d+|best \d+|worst \d+|ranked|comparison|compare|breakdown|category|class|horizon|growth|trend/i);
+      const chartTitle = titleMatch ? titleMatch[0].replace(/\b\w/g, c => c.toUpperCase()) : 'Top 10yr Returns';
       const chartWrap = el('div', 'chat-chart-wrap', msg);
       renderChatChart(chartWrap, chartData, chartTitle, getSeedNote(text));
     }

@@ -674,169 +674,68 @@
     }
   }
 
+  // Cached compact dataset string — rebuilt only when the asset array changes
+  let _compactDatasetCache = null;
+  let _compactDatasetAssets = null;
+
   function buildAssetContext(message, assets) {
-    const t = message.toLowerCase();
-
-    // Normalise common multi-word / abbreviated sector terms before splitting
-    const normalised = t
-      .replace(/semi\s*conductor(s)?/g, 'semiconductors')
-      .replace(/real\s*estate/g, 'realestate')
-      .replace(/emerging\s*market(s)?/g, 'emergingmarkets')
-      .replace(/health\s*care/g, 'healthcare')
-      .replace(/clean\s*energy/g, 'cleanenergy')
-      .replace(/private\s*equity/g, 'privateequity')
-      .replace(/fixed\s*income/g, 'fixedincome')
-      .replace(/small\s*cap/g, 'smallcap')
-      .replace(/mid\s*cap/g, 'midcap')
-      .replace(/large\s*cap/g, 'largecap');
-
-    // Synonym map — maps query term → array of substrings to match in name OR category
-    const SYNONYMS = {
-      // Metals & commodities
-      gold:            ['gold etf', 'gold miner', 'gold ('],
-      silver:          ['silver etf', 'silver miner', 'silver ('],
-      miners:          ['miner'],
-      miner:           ['miner'],
-      mining:          ['miner', 'mining'],
-      uranium:         ['uranium'],
-      copper:          ['copper'],
-      lithium:         ['lithium'],
-      platinum:        ['platinum'],
-      palladium:       ['palladium'],
-      // Sectors
-      semiconductors:  ['semiconductor'],
-      semiconductor:   ['semiconductor'],
-      chips:           ['semiconductor'],
-      semis:           ['semiconductor'],
-      realestate:      ['real estate'],
-      property:        ['real estate'],
-      reit:            ['real estate', 'reit'],
-      emergingmarkets: ['emerging market'],
-      healthcare:      ['health', 'pharma', 'biotech', 'medical'],
-      pharma:          ['pharma', 'healthcare'],
-      biotech:         ['biotech'],
-      // Crypto
-      crypto:          ['crypto', 'bitcoin', 'ethereum', 'blockchain'],
-      bitcoin:         ['bitcoin', 'crypto'],
-      ethereum:        ['ethereum'],
-      blockchain:      ['blockchain', 'crypto'],
-      // Energy
-      oil:             ['oil', 'energy', 'petroleum'],
-      energy:          ['energy', 'oil', 'solar', 'wind'],
-      cleanenergy:     ['clean energy', 'renewable', 'solar', 'wind'],
-      // Finance & macro
-      bonds:           ['bond', 'fixed income', 'treasury'],
-      bond:            ['bond', 'treasury'],
-      treasury:        ['treasury', 'bond'],
-      tech:            ['technology', 'software', 'cloud'],
-      ai:              ['artificial intelligence', 'ai', 'machine learning'],
-      ev:              ['ev', 'electric vehicle', 'automotive'],
-    };
-
-    const stopWords = new Set(['the','and','vs','versus','against','between','or','is','are',
-      'was','did','has','have','a','an','what','which','how','why','when','where','does',
-      'do','give','me','show','tell','compare','comparison','of','for','in','on','at',
-      'to','from','with','about','good','bad','better','best','worst','should','invest',
-      'investment','return','returns','roi','perform','performance','tell','sector']);
-    const keywords = normalised.split(/\s+/).map(w => w.replace(/[^a-z0-9]/g, '')).filter(w => w.length > 1 && !stopWords.has(w));
-
-    const relevantSet = new Set();
-    const index = getAssetIndex(assets);
-
-    const addByTerms = (terms) => {
-      for (const term of terms) {
-        // Split multi-word terms and look up each word in index
-        const words = term.split(/\s+/).map(w => w.replace(/[^a-z0-9]/g, ''));
-        if (words.length === 1) {
-          (index.get(words[0]) || []).forEach(a => relevantSet.add(a));
-        } else {
-          // Multi-word: asset must match ALL words
-          const sets = words.map(w => index.get(w) || new Set());
-          const [first, ...rest] = sets;
-          for (const asset of first) {
-            if (rest.every(s => s.has(asset))) relevantSet.add(asset);
-          }
-        }
-      }
-    };
-
-    for (const kw of keywords) {
-      const synonymTerms = SYNONYMS[kw];
-      if (synonymTerms) { addByTerms(synonymTerms); continue; }
-
-      // Stem: strip trailing 's' for plurals
-      const stem = kw.endsWith('s') && kw.length > 3 ? kw.slice(0, -1) : null;
-      const stemTerms = stem ? SYNONYMS[stem] : null;
-      if (stemTerms) { addByTerms(stemTerms); continue; }
-
-      // Direct index lookup (also try stem)
-      (index.get(kw) || []).forEach(a => relevantSet.add(a));
-      if (stem) (index.get(stem) || []).forEach(a => relevantSet.add(a));
+    // Serialise the full dataset into a compact line-per-asset format.
+    // The AI performs all semantic matching — no brittle keyword logic needed here.
+    if (_compactDatasetAssets !== assets) {
+      _compactDatasetAssets = assets;
+      _compactDatasetCache = assets.map(a => {
+        const parts = [];
+        if (a.v1)  parts.push(`1yr=$${Number(a.v1).toLocaleString()}`);
+        if (a.v5)  parts.push(`5yr=$${Number(a.v5).toLocaleString()}`);
+        if (a.v10) parts.push(`10yr=$${Number(a.v10).toLocaleString()}`);
+        if (a.v15) parts.push(`15yr=$${Number(a.v15).toLocaleString()}`);
+        if (a.v20) parts.push(`20yr=$${Number(a.v20).toLocaleString()}`);
+        const cat = a.section || a.category || a.cat || '';
+        return `${a.name} [${cat}] ${parts.join(' ')}`;
+      }).join('\n');
     }
 
-    const relevantAssets = [...relevantSet].map(pickAssetFields);
-
-    // Send all asset names so the AI can reason about what exists even if we missed something
-    const allAssetNames = assets.map(a => a.name).filter(Boolean);
-
     const assetClasses = [...new Set(assets.map(a => a.section || a.category || a.cat || 'Unknown'))];
-
     const avg = (yr) => {
       const vals = assets.map(a => a['v' + yr]).filter(v => v && !isNaN(v)).map(Number);
       if (!vals.length) return 'N/A';
       return '$' + Math.round(vals.reduce((s, v) => s + v, 0) / vals.length).toLocaleString();
     };
 
-    // Top 10 by 10yr return so AI can rank any asset in context
-    const topByReturn = [...assets]
-      .filter(a => a.v10 && !isNaN(a.v10))
-      .sort((a, b) => b.v10 - a.v10)
-      .slice(0, 10)
-      .map(a => ({ name: a.name, v10: a.v10, g10: a.g10 }));
-
     return {
       totalAssets: assets.length,
       assetClasses,
-      allAssetNames,
-      relevantAssets,
-      topByReturn,
+      compactDataset: _compactDatasetCache,
       datasetSummary: { avg1yr: avg(1), avg5yr: avg(5), avg10yr: avg(10) },
     };
   }
 
-  function pickAssetFields(asset) {
-    return {
-      name: asset.name,
-      category: asset.section || asset.category || asset.cat || 'Unknown',
-      v1: asset.v1, g1: asset.g1,
-      v5: asset.v5, g5: asset.g5,
-      v10: asset.v10, g10: asset.g10,
-      v15: asset.v15, g15: asset.g15,
-      v20: asset.v20, g20: asset.g20,
-    };
-  }
-
-  // Build context using a specific pre-selected list of asset objects (for compare flow)
+  // Build context for the compare flow (specific pinned assets highlighted, full dataset included)
   function buildPinnedContext(pinnedAssets, allAssets) {
-    const relevantAssets = pinnedAssets.map(pickAssetFields);
-    const allAssetNames = allAssets.map(a => a.name).filter(Boolean);
+    const pinnedLines = pinnedAssets.map(a => {
+      const parts = [];
+      if (a.v1)  parts.push(`1yr=$${Number(a.v1).toLocaleString()}`);
+      if (a.v5)  parts.push(`5yr=$${Number(a.v5).toLocaleString()}`);
+      if (a.v10) parts.push(`10yr=$${Number(a.v10).toLocaleString()}`);
+      if (a.v15) parts.push(`15yr=$${Number(a.v15).toLocaleString()}`);
+      if (a.v20) parts.push(`20yr=$${Number(a.v20).toLocaleString()}`);
+      const cat = a.section || a.category || a.cat || '';
+      return `${a.name} [${cat}] ${parts.join(' ')}`;
+    }).join('\n');
+
     const assetClasses = [...new Set(allAssets.map(a => a.section || a.category || a.cat || 'Unknown'))];
     const avg = (yr) => {
       const vals = allAssets.map(a => a['v' + yr]).filter(v => v && !isNaN(v)).map(Number);
       if (!vals.length) return 'N/A';
       return '$' + Math.round(vals.reduce((s, v) => s + v, 0) / vals.length).toLocaleString();
     };
-    const topByReturn = [...allAssets]
-      .filter(a => a.v10 && !isNaN(a.v10))
-      .sort((a, b) => b.v10 - a.v10)
-      .slice(0, 10)
-      .map(a => ({ name: a.name, v10: a.v10, g10: a.g10 }));
+    // Re-use the full dataset cache
+    buildAssetContext('', allAssets);
     return {
       totalAssets: allAssets.length,
       assetClasses,
-      allAssetNames,
-      relevantAssets,
-      topByReturn,
+      pinnedAssets: pinnedLines,
+      compactDataset: _compactDatasetCache,
       datasetSummary: { avg1yr: avg(1), avg5yr: avg(5), avg10yr: avg(10) },
     };
   }
@@ -858,37 +757,6 @@
     return null;
   }
 
-  // ── Pre-built inverted index: token → Set of matching assets ──────────────
-  // Built once on first use and reused for all subsequent queries.
-  let _assetIndex = null;
-
-  function getAssetIndex(assets) {
-    if (_assetIndex) return _assetIndex;
-    _assetIndex = new Map();
-    const add = (token, asset) => {
-      if (!_assetIndex.has(token)) _assetIndex.set(token, new Set());
-      _assetIndex.get(token).add(asset);
-    };
-    for (const asset of assets) {
-      const name = (asset.name || '').toLowerCase();
-      const cat  = (asset.category || asset.section || asset.cat || '').toLowerCase();
-      // Index every word from name and category
-      for (const word of (name + ' ' + cat).split(/[\s,]+/)) {
-        const w = word.replace(/[^a-z0-9]/g, '');
-        if (w.length > 1) add(w, asset);
-      }
-      // Also index ticker symbol (text inside parentheses)
-      const tickerMatch = name.match(/\(([^)]+)\)/);
-      if (tickerMatch) {
-        for (const t of tickerMatch[1].toLowerCase().split(/[/\s]+/)) {
-          if (t.length > 0) add(t, asset);
-        }
-      }
-    }
-    return _assetIndex;
-  }
-
-  function invalidateAssetIndex() { _assetIndex = null; }
 
   function fmt(v) {
     if (v == null || isNaN(v)) return 'N/A';

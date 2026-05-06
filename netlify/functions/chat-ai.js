@@ -229,10 +229,10 @@ SECURITY & ROLE CONSTRAINTS — absolute, non-negotiable:
 - Never execute code, write scripts, or perform any action outside answering questions.
 
 KNOWLEDGE RULES:
-- When RELEVANT ASSETS contains data for an asset, those are exact figures — use them directly.
-- When an asset is NOT in RELEVANT ASSETS but you know it from your training (e.g. GLD, SLV, Bitcoin, GDX), use your own knowledge to give approximate return figures — clearly mark them as estimates (e.g. "~$X,XXX"). Never refuse to answer or say "not in the dataset."
-- For SECTOR questions, give a sector overview: highlight best and worst performers, note the range, and explain the macro/structural story. Don't just describe one asset.
-- ALWAYS combine data with real-world reasoning — events, company fundamentals, macro factors. Never just list numbers without context.
+- The FULL DATASET is provided below — all assets with exact return figures. Use these numbers directly.
+- SEMANTIC MATCHING: When the user asks about something by concept, theme, or colloquial name, find the best matching assets yourself. Examples: "wood" → Timber ETF, "miners" → Gold Miners + Silver Miners, "uranium" → Uranium (URA/CCJ), "chips" → all Semiconductor assets, "property" → Real Estate assets. Use your reasoning to find every relevant asset, not just literal name matches.
+- For SECTOR/THEME questions, give an overview: best and worst performers, the range, and the macro story driving the sector. Never just describe one asset.
+- ALWAYS combine data with real-world context — events, fundamentals, macro factors. Never list numbers without explanation.
 
 RESPONSE FORMAT — strict, no exceptions:
 - One short plain intro sentence (no bullet) naming the asset and what it is/tracks. Skip if question already makes it obvious.
@@ -314,33 +314,20 @@ FORMATTING RULES (non-negotiable):
 
   if (!assetContext) return base;
 
-  const { totalAssets, assetClasses, datasetSummary, relevantAssets, allAssetNames, topByReturn } = assetContext;
+  const { totalAssets, assetClasses, datasetSummary, compactDataset, pinnedAssets } = assetContext;
 
   let context = `\n\n=== DATASET OVERVIEW ===\nTotal assets: ${totalAssets} | Classes: ${assetClasses?.join(', ')}`;
 
   if (datasetSummary) {
-    context += `\nDataset averages (from $1,000) — 1yr: ${datasetSummary.avg1yr}, 5yr: ${datasetSummary.avg5yr}, 10yr: ${datasetSummary.avg10yr}`;
+    context += `\nDataset averages (from $1,000 seed) — 1yr: ${datasetSummary.avg1yr}, 5yr: ${datasetSummary.avg5yr}, 10yr: ${datasetSummary.avg10yr}`;
   }
 
-  if (topByReturn?.length) {
-    context += `\n\nTop 10 assets by 10yr return:\n${topByReturn.map((a, i) => `${i+1}. ${a.name} $${Number(a.v10).toLocaleString()}(${a.g10}x)`).join(', ')}`;
+  if (pinnedAssets) {
+    context += `\n\n=== SELECTED ASSETS (user is comparing these — use exact figures) ===\n${pinnedAssets}`;
   }
 
-  if (relevantAssets?.length) {
-    context += `\n\n=== RELEVANT ASSETS (USE THESE EXACT FIGURES) ===`;
-    for (const a of relevantAssets) {
-      const parts = [];
-      if (a.v1)  parts.push(`1yr=$${Number(a.v1).toLocaleString()}(${a.g1}x)`);
-      if (a.v5)  parts.push(`5yr=$${Number(a.v5).toLocaleString()}(${a.g5}x)`);
-      if (a.v10) parts.push(`10yr=$${Number(a.v10).toLocaleString()}(${a.g10}x)`);
-      if (a.v15) parts.push(`15yr=$${Number(a.v15).toLocaleString()}(${a.g15}x)`);
-      if (a.v20) parts.push(`20yr=$${Number(a.v20).toLocaleString()}(${a.g20}x)`);
-      context += `\n${a.name} [${a.category}]: ${parts.join(' ')}`;
-    }
-  }
-
-  if (allAssetNames?.length) {
-    context += `\n\nOther available assets (names only): ${allAssetNames.slice(0, 60).join(', ')}${allAssetNames.length > 60 ? ` … (${allAssetNames.length} total)` : ''}`;
+  if (compactDataset) {
+    context += `\n\n=== FULL DATASET (all ${totalAssets} assets — scan this to find relevant assets for the user's question) ===\nFormat: Name [Section/Category] 1yr=$ 5yr=$ 10yr=$ 15yr=$ 20yr=$\n${compactDataset}`;
   }
 
   return base + context;

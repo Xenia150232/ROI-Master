@@ -815,6 +815,27 @@ input[type=checkbox]{accent-color:var(--primary);width:15px;height:15px;cursor:p
 .chat-chart-canvas{display:block;border-radius:6px;max-width:100%}
 .chat-chart-note{font-size:10.5px;color:var(--muted);margin-top:6px;padding-top:5px;border-top:1px solid var(--border);font-style:italic}
 
+/* Download overlay on chat visualisations */
+.chat-viz-downloadable{position:relative}
+.chat-viz-dl-btn{
+  position:absolute;top:6px;right:6px;
+  display:flex;align-items:center;justify-content:center;
+  width:26px;height:26px;
+  background:var(--surface);border:1px solid var(--border);border-radius:6px;
+  color:var(--muted);cursor:pointer;
+  opacity:0;pointer-events:none;
+  transition:opacity 160ms,background 140ms,color 140ms,transform 140ms;
+  box-shadow:0 2px 6px rgba(0,0,0,.12);
+  transform:translateY(-2px);
+  z-index:10;
+}
+.chat-viz-downloadable:hover .chat-viz-dl-btn,
+.chat-viz-downloadable:focus-within .chat-viz-dl-btn{
+  opacity:1;pointer-events:auto;transform:translateY(0);
+}
+.chat-viz-dl-btn:hover{background:var(--primary);border-color:var(--primary);color:#fff}
+[data-theme="dark"] .chat-viz-dl-btn{background:var(--surface2);box-shadow:0 2px 8px rgba(0,0,0,.35)}
+
 /* In-chat table */
 .chat-table-wrap{margin-top:10px;overflow-x:auto;border-radius:8px;border:1px solid var(--border)}
 .chat-table-title{font-size:11px;font-weight:700;color:var(--text);padding:8px 10px 6px;border-bottom:1px solid var(--border);background:var(--surface2);border-radius:8px 8px 0 0}

@@ -1488,6 +1488,130 @@
     } else {
       renderRankedChart(container, chartData.items, chartTitle, seedNote);
     }
+    attachDownloadOverlay(container, chartTitle || 'roi-chart');
+  }
+
+  // ── Download overlay (hover-to-reveal save button) ───────────────────────
+  function attachDownloadOverlay(container, chartTitle) {
+    container.classList.add('chat-viz-downloadable');
+
+    const btn = document.createElement('button');
+    btn.className = 'chat-viz-dl-btn';
+    btn.setAttribute('aria-label', 'Download chart');
+    btn.title = 'Download as image';
+    btn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>`;
+
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      downloadViz(container, chartTitle);
+    });
+
+    container.appendChild(btn);
+  }
+
+  function downloadViz(container, chartTitle) {
+    // Prefer the canvas directly if one exists
+    const canvas = container.querySelector('canvas');
+    if (canvas) {
+      const link = document.createElement('a');
+      link.download = sanitiseFilename(chartTitle) + '.png';
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+      return;
+    }
+
+    // For HTML tables: render to an offscreen canvas
+    const tableEl = container.querySelector('.chat-table');
+    if (!tableEl) return;
+
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const FONT = `-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
+    const bgColor    = isDark ? '#111623' : '#ffffff';
+    const borderCol  = isDark ? '#1f2740' : '#e2e5ef';
+    const headBg     = isDark ? '#161c2d' : '#f5f7fb';
+    const textColor  = isDark ? '#e2e6f0' : '#0f1523';
+    const mutedColor = isDark ? '#7986a0' : '#5c6478';
+    const altRowBg   = isDark ? '#161c2d' : '#f5f7fb';
+
+    const rows = [...tableEl.querySelectorAll('tr')];
+    const COL_PAD = 14;
+    const ROW_H   = 26;
+    const TITLE_H = chartTitle ? 30 : 0;
+    const PAD     = 12;
+
+    // Measure columns
+    const offC = document.createElement('canvas');
+    const offCtx = offC.getContext('2d');
+    offCtx.font = `600 11px ${FONT}`;
+    const colWidths = [];
+    rows.forEach(row => {
+      [...row.cells].forEach((cell, ci) => {
+        const w = offCtx.measureText(cell.textContent.trim()).width + COL_PAD * 2;
+        colWidths[ci] = Math.max(colWidths[ci] || 0, w);
+      });
+    });
+
+    const totalW = colWidths.reduce((s, w) => s + w, 0) + PAD * 2;
+    const totalH = TITLE_H + rows.length * ROW_H + PAD * 2;
+
+    const finalCanvas = document.createElement('canvas');
+    const ratio = window.devicePixelRatio || 1;
+    finalCanvas.width  = totalW * ratio;
+    finalCanvas.height = totalH * ratio;
+    const ctx = finalCanvas.getContext('2d');
+    ctx.scale(ratio, ratio);
+
+    // Background
+    ctx.fillStyle = bgColor;
+    ctx.fillRect(0, 0, totalW, totalH);
+
+    // Title
+    if (chartTitle) {
+      ctx.font = `700 12px ${FONT}`;
+      ctx.fillStyle = textColor;
+      ctx.textBaseline = 'middle';
+      ctx.fillText(chartTitle, PAD, TITLE_H / 2);
+    }
+
+    // Rows
+    rows.forEach((row, ri) => {
+      const isHead = row.parentElement.tagName === 'THEAD';
+      const ry = TITLE_H + PAD + ri * ROW_H;
+
+      // Row background
+      ctx.fillStyle = isHead ? headBg : (ri % 2 === 1 ? altRowBg : bgColor);
+      ctx.fillRect(PAD, ry, totalW - PAD * 2, ROW_H);
+
+      // Bottom border
+      ctx.strokeStyle = borderCol;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(PAD, ry + ROW_H);
+      ctx.lineTo(totalW - PAD, ry + ROW_H);
+      ctx.stroke();
+
+      let cx = PAD;
+      [...row.cells].forEach((cell, ci) => {
+        const cw = colWidths[ci];
+        const isFirst = ci === 0;
+        ctx.font = isHead ? `700 10px ${FONT}` : (isFirst ? `500 11px ${FONT}` : `600 11px ${FONT}`);
+        ctx.fillStyle = isHead ? mutedColor : textColor;
+        ctx.textAlign = isFirst ? 'left' : 'right';
+        ctx.textBaseline = 'middle';
+        const tx = isFirst ? cx + COL_PAD : cx + cw - COL_PAD;
+        ctx.fillText(cell.textContent.trim(), tx, ry + ROW_H / 2);
+        cx += cw;
+      });
+    });
+
+    const link = document.createElement('a');
+    link.download = sanitiseFilename(chartTitle) + '.png';
+    link.href = finalCanvas.toDataURL('image/png');
+    link.click();
+  }
+
+  function sanitiseFilename(s) {
+    return (s || 'chart').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'chart';
   }
 
   // ── Grouped (comparison) chart — two coloured bars per row ───────────────

